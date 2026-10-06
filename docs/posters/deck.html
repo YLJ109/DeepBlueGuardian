@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>深蓝智护 · 演示海报与模板</title>
+<style>
+  :root {
+    --bg: #04101f;
+    --bg-deep: #020a15;
+    --panel: rgba(9, 36, 64, 0.55);
+    --panel-solid: #092440;
+    --line: rgba(51, 225, 255, 0.38);
+    --line-soft: rgba(51, 225, 255, 0.16);
+    --line-strong: rgba(51, 225, 255, 0.7);
+    --cyan: #33e1ff;
+    --green: #29e7a0;
+    --yellow: #ffd166;
+    --orange: #ff9f43;
+    --red: #ff4d6d;
+    --purple: #a78bfa;
+    --blue: #4c8dff;
+    --text: #dff3ff;
+    --text-dim: #7fb3cc;
+    --text-mute: #567f99;
+    --sans: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
+    --mono: Consolas, "SFMono-Regular", "Courier New", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #01060d; font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+
+  .poster {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    padding: 64px 76px 56px;
+    overflow: hidden;
+    color: var(--text);
+    background:
+      radial-gradient(1400px 700px at 88% -12%, rgba(51, 225, 255, 0.16), transparent 62%),
+      radial-gradient(1100px 640px at 4% 108%, rgba(41, 231, 160, 0.12), transparent 60%),
+      linear-gradient(140deg, #020a15 0%, #04101f 42%, #06233d 100%);
+    display: flex;
+    flex-direction: column;
+  }
+  /* 网格与光带 */
+  .poster::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(51, 225, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(51, 225, 255, 0.05) 1px, transparent 1px);
+    background-size: 68px 68px;
+    mask-image: radial-gradient(120% 100% at 50% 40%, #000 35%, transparent 100%);
+    -webkit-mask-image: radial-gradient(120% 100% at 50% 40%, #000 35%, transparent 100%);
+    pointer-events: none;
+  }
+  .poster::after {
+    content: "";
+    position: absolute;
+    left: -20%;
+    top: 62%;
+    width: 150%;
+    height: 200px;
+    background: linear-gradient(100deg, transparent 30%, rgba(51, 225, 255, 0.12) 52%, transparent 74%);
+    transform: rotate(-7deg);
+    pointer-events: none;
+  }
+  .poster > * { position: relative; z-index: 2; }
+  .corner { position: absolute; width: 46px; height: 46px; border: 2px solid var(--cyan); opacity: 0.7; pointer-events: none; z-index: 3; }
+  .corner.tl { top: 26px; left: 26px; border-right: 0; border-bottom: 0; }
+  .corner.tr { top: 26px; right: 26px; border-left: 0; border-bottom: 0; }
+  .corner.bl { bottom: 26px; left: 26px; border-right: 0; border-top: 0; }
+  .corner.br { bottom: 26px; right: 26px; border-left: 0; border-top: 0; }
+
+  /* 页眉 / 页脚 */
+  .hd { display: flex; align-items: center; gap: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); flex: none; }
+  .mark {
+    width: 44px; height: 44px; flex: none; display: grid; place-items: center;
+    border: 1px solid var(--line); color: var(--cyan);
+    background: linear-gradient(160deg, rgba(51, 225, 255, 0.16), rgba(4, 20, 36, 0.4));
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  }
+  .mark svg { width: 22px; height: 22px; }
+  .hd .bt { display: flex; flex-direction: column; line-height: 1.2; }
+  .hd .bt b { font-size: 21px; font-weight: 800; letter-spacing: 0.1em; color: #fff; }
+  .hd .bt i { font-style: normal; font-size: 12px; letter-spacing: 0.24em; color: var(--text-mute); font-family: var(--mono); }
+  .hd .sp { flex: 1; }
+  .hd .sec { font-family: var(--mono); font-size: 13px; letter-spacing: 0.2em; color: var(--cyan); }
+  .hd .no { font-family: var(--mono); font-size: 13px; letter-spacing: 0.16em; color: var(--text-mute); }
+  .ft {
+    margin-top: auto; padding-top: 18px; border-top: 1px solid var(--line-soft);
+    display: flex; align-items: center; gap: 16px; flex: none;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; color: var(--text-mute);
+  }
+  .ft .sp { flex: 1; }
+
+  /* 通用组件 */
+  .cut { clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
+  .card {
+    position: relative;
+    border: 1px solid var(--line-soft);
+    background: linear-gradient(158deg, rgba(51, 225, 255, 0.09), rgba(4, 20, 36, 0.62));
+    padding: 22px 24px;
+  }
+  .card::before, .card::after { content: ""; position: absolute; width: 14px; height: 14px; border: 2px solid var(--cyan); opacity: 0.75; }
+  .card::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .card::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .card h3 { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: 0.04em; }
+  .card p { font-size: 15.5px; line-height: 1.75; color: var(--text-dim); margin-top: 10px; }
+  .num { font-family: var(--mono); }
+  .mute { color: var(--text-mute); }
+  .cy { color: var(--cyan); }
+  .gr { color: var(--green); }
+  .yl { color: var(--yellow); }
+  .or { color: var(--orange); }
+  .rd { color: var(--red); }
+  .pu { color: var(--purple); }
+
+  .title { font-size: 46px; font-weight: 800; letter-spacing: 0.02em; color: #fff; }
+  .title .hl { color: var(--cyan); }
+  .subtitle { font-size: 17px; color: var(--text-dim); margin-top: 12px; line-height: 1.7; max-width: 1180px; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 16px; border: 1px solid var(--line-soft);
+    background: rgba(4, 20, 36, 0.6); font-size: 14.5px; color: #cfeaff; white-space: nowrap;
+  }
+  .chip b { color: var(--cyan); font-family: var(--mono); font-weight: 700; }
+
+  .statgrid { display: grid; gap: 16px; }
+  .stat {
+    border: 1px solid var(--line-soft); padding: 18px 20px;
+    background: linear-gradient(160deg, rgba(51, 225, 255, 0.09), rgba(4, 20, 36, 0.55));
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .stat .v { font-family: var(--mono); font-size: 40px; font-weight: 700; color: #fff; line-height: 1; }
+  .stat .v small { font-size: 16px; color: var(--text-dim); margin-left: 6px; font-family: var(--sans); }
+  .stat .k { font-size: 14px; color: var(--text-dim); }
+  .stat .s { font-size: 12.5px; color: var(--text-mute); }
+
+  .shot {
+    position: relative; width: 100%; display: block; object-fit: cover;
+    border: 1px solid var(--line-soft);
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 40px rgba(51, 225, 255, 0.12);
+  }
+  .shot-wrap { position: relative; }
+  .shot-wrap .tag {
+    position: absolute; left: 0; top: 0; z-index: 3;
+    padding: 7px 16px; font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.16em;
+    color: #04131f; background: var(--cyan);
+  }
+  .callout { display: flex; gap: 10px; align-items: flex-start; }
+  .callout .dot { width: 9px; height: 9px; flex: none; margin-top: 7px; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+  .callout .dot.g { background: var(--green); box-shadow: 0 0 10px var(--green); }
+  .callout .dot.y { background: var(--yellow); box-shadow: 0 0 10px var(--yellow); }
+  .callout .dot.r { background: var(--red); box-shadow: 0 0 10px var(--red); }
+  .callout b { display: block; font-size: 16.5px; color: #fff; margin-bottom: 5px; }
+  .callout span { font-size: 14px; color: var(--text-dim); line-height: 1.65; }
+</style>
+</head>
+<body>
+
+<!-- ============ 00 主视觉 ============ -->
+<section class="poster" id="p0">
+  <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="hd">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 8c3 0 4-2 6-2s3 2 6 2 4-2 6-2v6c-2 0-4 2-6 2s-3-2-6-2-4 2-6 2z"/><path d="M2 16c3 0 4-2 6-2s3 2 6 2 4-2 6-2v5H2z"/></svg></div>
+    <div class="bt"><b>深蓝智护</b><i>DEEP BLUE GUARDIAN</i></div>
+    <div class="sp"></div>
+    <div class="sec">PROJECT SHOWCASE</div>
+    <div class="no">01 / 09</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 900px;gap:56px;align-items:center;flex:1;padding:34px 0;">
+    <div>
+      <div class="chip"><b>LIANJIANG · FUJIAN</b> 连江县海洋牧场与红树林湿地</div>
+      <div style="font-size:96px;font-weight:900;letter-spacing:0.06em;line-height:1.06;margin-top:26px;background:linear-gradient(100deg,#ffffff 20%,#8ce9ff 58%,#33e1ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;">深蓝智护</div>
+      <div style="font-size:34px;font-weight:700;color:#bfe9ff;letter-spacing:0.14em;margin-top:6px;">连江海洋生态智能监测平台</div>
+      <p style="font-size:18px;line-height:1.85;color:var(--text-dim);margin-top:24px;max-width:840px;">
+        面向连江县海洋牧场与红树林湿地的<strong style="color:#fff;">软硬件一体化监测平台</strong>：多参数水质浮标完成原位采集，LoRa + 4G 双通道回传至边缘网关，云端完成存储、聚合、告警与 AI 赤潮风险分级，最终以海域三维数字孪生大屏与全流程管理后台呈现。
+      </p>
+      <div style="display:flex;gap:12px;margin-top:26px;flex-wrap:wrap;">
+        <span class="chip">物联网感知</span>
+        <span class="chip">边缘计算</span>
+        <span class="chip">数字孪生</span>
+        <span class="chip">AI 赤潮预警</span>
+        <span class="chip">遥感生态监测</span>
+      </div>
+    </div>
+    <div class="shot-wrap">
+      <span class="tag">三维数字孪生大屏 · 实时运行</span>
+      <img class="shot" src="assets/screen.png" alt="数字孪生大屏">
+    </div>
+  </div>
+
+  <div class="ft"><span>福建省福州市连江县</span><span>·</span><span>黄岐半岛 / 定海湾 / 罗源湾 / 敖江口</span><span class="sp"></span><span>LIANJIANG OCEAN ECOLOGICAL DIGITAL TWIN</span></div>
+</section>
+
+<!-- ============ 01 背景与痛点 ============ -->
+<section class="poster" id="p1">
+  <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="hd">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 8c3 0 4-2 6-2s3 2 6 2 4-2 6-2v6c-2 0-4 2-6 2s-3-2-6-2-4 2-6 2z"/><path d="M2 16c3 0 4-2 6-2s3 2 6 2 4-2 6-2v5H2z"/></svg></div>
+    <div class="bt"><b>深蓝智护</b><i>DEEP BLUE GUARDIAN</i></div>
+    <div class="sp"></div>
+    <div class="sec">BACKGROUND &amp; PAIN POINTS</div>
+    <div class="no">02 / 09</div>
+  </div>
+
+  <div style="padding:30px 0 0;flex:1;display:flex;flex-direction:column;">
+    <div class="title">连江海域的<span class="hl">监测困局</span></div>
+    <div class="subtitle">连江海域同时承受陆源排污、养殖自身污染、台风风暴潮与气候变暖的多重压力，是典型的高强度开发与高生态敏感度叠加区域，传统监测手段难以支撑小时级风险预警。</div>
+
+    <div class="statgrid" style="grid-template-columns:repeat(4,1fr);margin-top:34px;">
+      <div class="card"><h3><span class="rd num">01</span> 巡检成本高</h3><p>人工乘船采样、送检，单次巡检周期通常 3–7 天，无法发现小时级的突发水质异常，人力与船艇成本长期居高不下。</p></div>
+      <div class="card"><h3><span class="rd num">02</span> 赤潮预警滞后</h3><p>赤潮主要依赖渔民经验与肉眼观测上报，往往在水色异常时已进入暴发期，错过应急处置窗口。</p></div>
+      <div class="card"><h3><span class="rd num">03</span> 数据孤岛严重</h3><p>水质参数分散在不同部门与不同厂商系统，量纲与口径不统一，无法统一可视化与横向比对。</p></div>
+      <div class="card"><h3><span class="rd num">04</span> 湿地缺连续观测</h3><p>红树林保护以季度或年度遥感影像为主，缺少长期连续的多要素监测，退化过程难以被捕捉。</p></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.05fr 1fr;gap:22px;margin-top:26px;">
+      <div class="card" style="padding:24px 26px;">
+        <h3 style="font-size:19px;">监测范围与场景负载</h3>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px;">
+          <div class="stat" style="padding:14px 16px;"><div class="v" style="font-size:30px;">258<small>hm²</small></div><div class="k">黄岐半岛国家级海洋牧场核心区</div></div>
+          <div class="stat" style="padding:14px 16px;"><div class="v" style="font-size:30px;">135<small>km²</small></div><div class="k">定海湾海域面积 · 深远海平台</div></div>
+          <div class="stat" style="padding:14px 16px;"><div class="v" style="font-size:30px;">7.5<small>万亩</small></div><div class="k">马鼻镇滩涂 · 潮滩—红树林复合生境</div></div>
+          <div class="stat" style="padding:14px 16px;"><div class="v" style="font-size:30px;">320<small>hm²</small></div><div class="k">罗源湾鉴江—松山红树林集中区</div></div>
+        </div>
+      </div>
+      <div class="card" style="padding:24px 26px;">
+        <h3 style="font-size:19px;">由此确定的三条建设主线</h3>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:18px;">
+          <div class="callout"><span class="dot"></span><div><b>数据从“离散采样”走向“原位连续”</b><span>浮标原位采集水温、pH、溶解氧、浊度、叶绿素a、盐度，采样间隔 300 秒。</span></div></div>
+          <div class="callout"><span class="dot y"></span><div><b>风险从“事后发现”走向“提前研判”</b><span>用 24 小时时序窗口预测未来 48 小时赤潮风险等级，输出 Ⅰ / Ⅱ / Ⅲ / Ⅳ 四级结果。</span></div></div>
+          <div class="callout"><span class="dot g"></span><div><b>监管从“分散台账”走向“一张图管理”</b><span>海域三维数字孪生 + 统一告警处置闭环 + 红树林遥感期次比对。</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ft"><span>数据口径：公开资料与本平台监测数据</span><span class="sp"></span><span>02 · BACKGROUND</span></div>
+</section>
+
+<!-- ============ 02 感知层硬件 ============ -->
+<section class="poster" id="p2">
+  <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="hd">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 8c3 0 4-2 6-2s3 2 6 2 4-2 6-2v6c-2 0-4 2-6 2s-3-2-6-2-4 2-6 2z"/><path d="M2 16c3 0 4-2 6-2s3 2 6 2 4-2 6-2v5H2z"/></svg></div>
+    <div class="bt"><b>深蓝智护</b><i>DEEP BLUE GUARDIAN</i></div>
+    <div class="sp"></div>
+    <div class="sec">SENSING LAYER</div>
+    <div class="no">03 / 09</div>
+  </div>
+
+  <div style="padding:30px 0 0;flex:1;display:flex;flex-direction:column;">
+    <div class="title">感知层 · <span class="hl">多参数水质浮标</span></div>
+    <div class="subtitle">太阳能供电的原位浮标，集成六项水质传感器与 LoRa 无线回传，布放于海洋牧场网箱区与红树林监测点位，实现 300 秒级连续观测。</div>
+
+    <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:24px;margin-top:30px;align-items:stretch;">
+      <div class="card" style="padding:26px 28px;">
+        <h3 style="font-size:19px;">浮标结构（自上而下）</h3>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:18px;">
+          <div class="chip" style="justify-content:space-between;width:100%;padding:14px 18px;"><span>太阳能供电模块</span><b>单晶硅 40 W / 锂电 12 Ah</b></div>
+          <div class="chip" style="justify-content:space-between;width:100%;padding:14px 18px;"><span>主控与通信舱</span><b>STM32 + LoRa SX1278 / 4G 备份</b></div>
+          <div class="chip" style="justify-content:space-between;width:100%;padding:14px 18px;"><span>多参数传感器探头组</span><b>六要素一体化</b></div>
+          <div class="chip" style="justify-content:space-between;width:100%;padding:14px 18px;"><span>锚系与配重</span><b>布放深度 0.5 – 3 m</b></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px;">
+          <div class="stat" style="padding:14px 16px;"><div class="v" style="font-size:28px;">300<small>秒</small></div><div class="k">采样间隔</div></div>
+          <div class="stat" style="padding:14px 16px;"><div class="v" style="font-size:28px;">IP68</div><div class="k">防护等级</div></div>
+          <div class="stat" style="padding:14px 16px;"><div class="v" style="font-size:28px;">≤5<small>km</small></div><div class="k">LoRa 视距通信</div></div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:26px 28px;">
+        <h3 style="font-size:19px;">六项监测指标</h3>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:18px;">
+          <div class="stat" style="padding:16px 18px;"><div class="v" style="font-size:26px;">水温</div><div class="k">水体热状况与赤潮适温窗口</div></div>
+          <div class="stat" style="padding:16px 18px;"><div class="v" style="font-size:26px;">pH</div><div class="k">藻华光合作用强度指示</div></div>
+          <div class="stat" style="padding:16px 18px;"><div class="v" style="font-size:26px;">溶解氧</div><div class="k">缺氧与富营养化判据</div></div>
+          <div class="stat" style="padding:16px 18px;"><div class="v" style="font-size:26px;">浊度</div><div class="k">悬浮物与水体扰动程度</div></div>
+          <div class="stat" style="padding:16px 18px;grid-column:span 2;"><div class="v" style="font-size:26px;">叶绿素a <small>核心预警指标</small></div><div class="k">赤潮生物量的直接代理变量，风险分级依据其未来 48 小时峰值</div></div>
+          <div class="stat" style="padding:16px 18px;grid-column:span 2;"><div class="v" style="font-size:26px;">盐度</div><div class="k">河口冲淡水与陆源输入影响，用于校正藻华成因判断</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ft"><span>硬件形态：水质浮标原型（太阳能 + 锂电 + LoRa）</span><span class="sp"></span><span>03 · SENSING</span></div>
+</section>
+
+<!-- ============ 03 通信与边缘 ============ -->
+<section class="poster" id="p3">
+  <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="hd">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 8c3 0 4-2 6-2s3 2 6 2 4-2 6-2v6c-2 0-4 2-6 2s-3-2-6-2-4 2-6 2z"/><path d="M2 16c3 0 4-2 6-2s3 2 6 2 4-2 6-2v5H2z"/></svg></div>
+    <div class="bt"><b>深蓝智护</b><i>DEEP BLUE GUARDIAN</i></div>
+    <div class="sp"></div>
+    <div class="sec">NETWORK &amp; EDGE</div>
+    <div class="no">04 / 09</div>
+  </div>
+
+  <div style="padding:30px 0 0;flex:1;display:flex;flex-direction:column;">
+    <div class="title">数据链路 · <span class="hl">LoRa + 4G</span> 双通道</div>
+    <div class="subtitle">海上点位以 LoRa 低功耗自组网接入岸边边缘网关，网关经 4G 回传云端；链路中断时本地缓存，恢复后自动断点续传。</div>
+
+    <div class="card" style="margin-top:32px;padding:34px 30px;">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:center;">
+        <div class="stat" style="align-items:center;text-align:center;padding:22px 16px;"><div class="v" style="font-size:24px;">浮标节点</div><div class="k">10 台多参数水质浮标</div><div class="s num">300 s / 次</div></div>
+        <div style="text-align:center;" class="cy num">LoRa<br><span class="mute" style="font-size:12px;">≤5 km 视距</span></div>
+        <div class="stat" style="align-items:center;text-align:center;padding:22px 16px;"><div class="v" style="font-size:24px;">边缘网关</div><div class="k">岸边 / 平台部署</div><div class="s num">本地缓存 · 校验</div></div>
+        <div style="text-align:center;" class="cy num">4G<br><span class="mute" style="font-size:12px;">公网回传</span></div>
+        <div class="stat" style="align-items:center;text-align:center;padding:22px 16px;"><div class="v" style="font-size:24px;">云端平台</div><div class="k">FastAPI + SQLite</div><div class="s num">存储 · 聚合 · 告警</div></div>
+      </div>
+    </div>
+
+    <div class="statgrid" style="grid-template-columns:repeat(4,1fr);margin-top:26px;">
+      <div class="card"><h3 style="font-size:18px;">断点续传</h3><p>网络中断期间数据写入网关本地队列，链路恢复后按时间戳顺序补传，云端自动去重。</p></div>
+      <div class="card"><h3 style="font-size:18px;">异常值剔除</h3><p>边缘侧对超出传感器量程、相邻点突变的读数标记为可疑或无效，不参与风险计算。</p></div>
+      <div class="card"><h3 style="font-size:18px;">设备心跳</h3><p>网关周期性上报心跳，超时未上报自动置为离线并生成设备异常告警。</p></div>
+      <div class="card"><h3 style="font-size:18px;">低功耗策略</h3><p>非采样时段进入休眠，配合太阳能与锂电，支持海上长期无人值守运行。</p></div>
+    </div>
+  </div>
+
+  <div class="ft"><span>通信拓扑：浮标 → LoRa → 边缘网关 → 4G → 云端</span><span class="sp"></span><span>04 · LINK</span></div>
+</section>
+
+<!-- ============ 04 数字孪生大屏 ============ -->
+<section class="poster" id="p4">
+  <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="hd">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 8c3 0 4-2 6-2s3 2 6 2 4-2 6-2v6c-2 0-4 2-6 2s-3-2-6-2-4 2-6 2z"/><path d="M2 16c3 0 4-2 6-2s3 2 6 2 4-2 6-2v5H2z"/></svg></div>
+    <div class="bt"><b>深蓝智护</b><i>DEEP BLUE GUARDIAN</i></div>
+    <div class="sp"></div>
+    <div class="sec">DIGITAL TWIN SCREEN</div>
+    <div class="no">05 / 09</div>
+  </div>
+
+  <div style="padding:26px 0 0;flex:1;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:flex-end;gap:24px;">
+      <div class="title" style="flex:1;">三维<span class="hl">数字孪生大屏</span></div>
+      <div style="display:flex;gap:10px;">
+        <span class="chip">左中右三栏</span><span class="chip">3D 海域沙盘</span><span class="chip">实时告警弹窗</span>
+      </div>
+    </div>
+
+    <div class="shot-wrap" style="margin-top:22px;">
+      <span class="tag">连江海域 · THREE.JS 实时渲染</span>
+      <img class="shot" src="assets/screen.png" alt="数字孪生大屏" style="height:600px;">
+    </div>
+
+    <div class="statgrid" style="grid-template-columns:repeat(4,1fr);margin-top:22px;">
+      <div class="callout"><span class="dot"></span><div><b>中央 3D 海域沙盘</b><span>卫星影像底图 + SRTM 地形，标注 10 个浮标点位、网箱分布与红树林斑块。</span></div></div>
+      <div class="callout"><span class="dot g"></span><div><b>实时水质监测</b><span>水温 / pH / 溶解氧 / 浊度 / 叶绿素a / 盐度全域均值与 24 小时曲线。</span></div></div>
+      <div class="callout"><span class="dot y"></span><div><b>赤潮风险环形图</b><span>Ⅰ–Ⅳ 级风险占比，配合 AI 研判横幅实时播报全域风险。</span></div></div>
+      <div class="callout"><span class="dot r"></span><div><b>告警弹窗与状态栏</b><span>越限与模型预警即时弹出，底部状态栏汇总设备在线率与通道状态。</span></div></div>
+    </div>
+  </div>
+
+  <div class="ft"><span>运行地址：/ （全屏大屏）</span><span class="sp"></span><span>05 · DIGITAL TWIN</span></div>
+</section>
+
+<!-- ============ 05 AI 赤潮预警 ============ -->
+<section class="poster" id="p5">
+  <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="hd">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 8c3 0 4-2 6-2s3 2 6 2 4-2 6-2v6c-2 0-4 2-6 2s-3-2-6-2-4 2-6 2z"/><path d="M2 16c3 0 4-2 6-2s3 2 6 2 4-2 6-2v5H2z"/></svg></div>
+    <div class="bt"><b>深蓝智护</b><i>DEEP BLUE GUARDIAN</i></div>
+    <div class="sp"></div>
+    <div class="sec">AI RED-TIDE FORECAST</div>
+    <div class="no">06 / 09</div>
+  </div>
+
+  <div style="padding:28px 0 0;flex:1;display:flex;flex-direction:column;">
+    <div class="title">AI <span class="hl">赤潮风险预警</span></div>
+    <div class="subtitle">输入 24 小时水质时序窗口，输出未来 48 小时赤潮风险等级，分级依据叶绿素a浓度峰值口径（&lt;5 / 5–10 / 10–20 / ≥20 μg/L）。</div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:26px;">
+      <div class="stat" style="border-color:rgba(41,231,160,.4);"><div class="v gr" style="font-size:32px;">Ⅰ 级</div><div class="k">低风险 · 叶绿素a峰值 &lt; 5 μg/L</div></div>
+      <div class="stat" style="border-color:rgba(51,225,255,.4);"><div class="v cy" style="font-size:32px;">Ⅱ 级</div><div class="k">关注 · 5 – 10 μg/L</div></div>
+      <div class="stat" style="border-color:rgba(255,159,67,.45);"><div class="v or" style="font-size:32px;">Ⅲ 级</div><div class="k">中高风险 · 10 – 20 μg/L</div></div>
+      <div class="stat" style="border-color:rgba(255,77,109,.45);"><div class="v rd" style="font-size:32px;">Ⅳ 级</div><div class="k">高风险 · ≥ 20 μg/L</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:22px;margin-top:24px;flex:1;">
+      <div class="card" style="padding:26px 28px;">
+        <h3 style="font-size:19px;">模型与测试集指标</h3>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px;">
+          <div class="stat" style="padding:14px 16px;"><div class="v" style="font-size:28px;">76.5<small>%</small></div><div class="k">准确率</div></div>
+          <div class="stat" style="padding:14px 16px;"><div class="v" style="font-size:28px;">0.618</div><div class="k">宏平均 F1</div></div>
+          <div class="stat" style="padding:14px 16px;"><div class="v" style="font-size:28px;">0.887</div><div class="k">ROC-AUC（OvR）</div></div>
+          <div class="stat" style="padding:14px 16px;"><div class="v" style="font-size:28px;">62.3<small>%</small></div><div class="k">Ⅲ / Ⅳ 级召回率</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:22px;">
+          <div class="callout"><span class="dot"></span><div><b>算法</b><span>StandardScaler + GradientBoostingClassifier 多分类，训练样本 16,000 条，测试集 4,000 条。</span></div></div>
+          <div class="callout"><span class="dot g"></span><div><b>特征工程（49 维）</b><span>六项指标的均值 / 波动 / 当前值 / 变化量 / 极值，叠加水温适宜度、盐度适宜度、叶绿素a增长速率、溶解氧亏缺、浊度叶绿素比、季节节律等组合特征。</span></div></div>
+          <div class="callout"><span class="dot y"></span><div><b>分级阈值可配置</b><span>Ⅱ / Ⅲ / Ⅳ 级起点阈值在管理后台在线修改，保存后写入模型配置表并对后续预测立即生效。</span></div></div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:26px 28px;">
+        <h3 style="font-size:19px;">特征重要度前 8 项</h3>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:18px;">
+          <div class="chip" style="justify-content:space-between;width:100%;"><span>叶绿素a峰值</span><b>0.2159</b></div>
+          <div class="chip" style="justify-content:space-between;width:100%;"><span>叶绿素a最低值</span><b>0.1258</b></div>
+          <div class="chip" style="justify-content:space-between;width:100%;"><span>叶绿素a当前值</span><b>0.0911</b></div>
+          <div class="chip" style="justify-content:space-between;width:100%;"><span>叶绿素a变化量</span><b>0.0752</b></div>
+          <div class="chip" style="justify-content:space-between;width:100%;"><span>叶绿素a均值</span><b>0.0579</b></div>
+          <div class="chip" style="justify-content:space-between;width:100%;"><span>浊度 / 叶绿素a比</span><b>0.0307</b></div>
+          <div class="chip" style="justify-content:space-between;width:100%;"><span>叶绿素a增长速率</span><b>0.0277</b></div>
+          <div class="chip" style="justify-content:space-between;width:100%;"><span>水温波动</span><b>0.0251</b></div>
+        </div>
+        <div style="margin-top:18px;font-size:12.5px;color:var(--text-mute);line-height:1.7;">指标取自模型测试集评估结果；当前训练集为物理仿真数据，接入真实观测数据后可复用同一特征工程与训练流程。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ft"><span>模型版本 red_tide v1 · 窗口 24 h · 预测 48 h</span><span class="sp"></span><span>06 · AI FORECAST</span></div>
+</section>
+
+<!-- ============ 06 红树林遥感 ============ -->
+<section class="poster" id="p6">
+  <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="hd">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 8c3 0 4-2 6-2s3 2 6 2 4-2 6-2v6c-2 0-4 2-6 2s-3-2-6-2-4 2-6 2z"/><path d="M2 16c3 0 4-2 6-2s3 2 6 2 4-2 6-2v5H2z"/></svg></div>
+    <div class="bt"><b>深蓝智护</b><i>DEEP BLUE GUARDIAN</i></div>
+    <div class="sp"></div>
+    <div class="sec">MANGROVE MONITORING</div>
+    <div class="no">07 / 09</div>
+  </div>
+
+  <div style="padding:28px 0 0;flex:1;display:flex;flex-direction:column;">
+    <div class="title">红树林<span class="hl">遥感变化监测</span></div>
+    <div class="subtitle">基于 Sentinel-2 期次影像，融合 NDVI / NDWI / MNDWI / CMRI 决策规则完成红树林斑块分割与两期变化检测，输出面积、健康度与新增 / 减少斑块掩膜。</div>
+
+    <div class="statgrid" style="grid-template-columns:repeat(4,1fr);margin-top:26px;">
+      <div class="stat"><div class="v">460.2<small>ha</small></div><div class="k">监测总面积</div><div class="s">3 个片区</div></div>
+      <div class="stat"><div class="v gr">83.1</div><div class="k">面积加权健康度</div><div class="s">CMRI 综合评分</div></div>
+      <div class="stat"><div class="v cy">2</div><div class="k">面积增长片区</div><div class="s">期次对比 2026Q1</div></div>
+      <div class="stat"><div class="v yl">1</div><div class="k">面积减少片区</div><div class="s">敖江口受径流影响</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-top:22px;flex:1;">
+      <div class="card" style="padding:24px 26px;">
+        <h3 style="font-size:19px;">罗源湾鉴江—松山集中区</h3>
+        <div class="stat" style="border:0;background:none;padding:14px 0 0;"><div class="v">320.0<small>ha</small></div><div class="k">健康度 84.6（优） · 面积变化 <span class="gr">+0.86%</span></div></div>
+        <p>连片天然红树林湿地，主要建群种为秋茄、桐花树、白骨壤、木榄，是本平台红树林健康度评估的核心样区。</p>
+      </div>
+      <div class="card" style="padding:24px 26px;">
+        <h3 style="font-size:19px;">马鼻镇浮曦村红树林</h3>
+        <div class="stat" style="border:0;background:none;padding:14px 0 0;"><div class="v">96.4<small>ha</small></div><div class="k">健康度 81.2（良） · 面积变化 <span class="gr">+1.42%</span></div></div>
+        <p>位于罗源湾腹部滩涂的核心观赏区，潮滩—红树林复合生境，作为湿地保护与科普展示的重点片区。</p>
+      </div>
+      <div class="card" style="padding:24px 26px;">
+        <h3 style="font-size:19px;">浦口镇松坞村敖江口红树林</h3>
+        <div class="stat" style="border:0;background:none;padding:14px 0 0;"><div class="v">43.8<small>ha</small></div><div class="k">健康度 76.4（良） · 面积变化 <span class="rd">−0.64%</span></div></div>
+        <p>河口区红树林，同时受径流与陆源输入影响，是变化检测中需重点关注幼苗成活率的片区。</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;padding:20px 26px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+        <div class="callout"><span class="dot g"></span><div><b>分割掩膜</b><span>输出前期 / 后期二值掩膜，用于面积核算。</span></div></div>
+        <div class="callout"><span class="dot"></span><div><b>变化检测</b><span>新增斑块与减少斑块分别成图，定位退化位置。</span></div></div>
+        <div class="callout"><span class="dot y"></span><div><b>面积标定</b><span>以参考区实测面积完成像素—公顷标定。</span></div></div>
+        <div class="callout"><span class="dot r"></span><div><b>期次追溯</b><span>按 2026Q1 等期次留存结果，形成连续档案。</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ft"><span>影像来源：Sentinel-2 L2A · 期次 2026Q1</span><span class="sp"></span><span>07 · MANGROVE</span></div>
+</section>
+
+<!-- ============ 07 管理后台 ============ -->
+<section class="poster" id="p7">
+  <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="hd">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 8c3 0 4-2 6-2s3 2 6 2 4-2 6-2v6c-2 0-4 2-6 2s-3-2-6-2-4 2-6 2z"/><path d="M2 16c3 0 4-2 6-2s3 2 6 2 4-2 6-2v5H2z"/></svg></div>
+    <div class="bt"><b>深蓝智护</b><i>DEEP BLUE GUARDIAN</i></div>
+    <div class="sp"></div>
+    <div class="sec">MANAGEMENT CONSOLE</div>
+    <div class="no">08 / 09</div>
+  </div>
+
+  <div style="padding:26px 0 0;flex:1;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:flex-end;gap:24px;">
+      <div class="title" style="flex:1;">管理后台 · <span class="hl">全流程闭环</span></div>
+      <div style="display:flex;gap:10px;"><span class="chip">设备管理</span><span class="chip">历史数据</span><span class="chip">告警记录</span><span class="chip">赤潮模型</span><span class="chip">账号与审计</span></div>
+    </div>
+
+    <div class="shot-wrap" style="margin-top:20px;">
+      <span class="tag">设备台账 · 23 台在网设备</span>
+      <img class="shot" src="assets/console-devices.png" alt="管理后台 · 设备台账" style="height:560px;">
+    </div>
+
+    <div class="statgrid" style="grid-template-columns:repeat(4,1fr);margin-top:20px;">
+      <div class="callout"><span class="dot"></span><div><b>设备台账与远程指令</b><span>查询 / 筛选、采样间隔下发、校准、对时、重启与心跳状态跟踪。</span></div></div>
+      <div class="callout"><span class="dot g"></span><div><b>历史数据与数据资产</b><span>多设备对比查询、1 分钟 / 1 小时 / 日均值粒度、CSV 导出与数据质量统计。</span></div></div>
+      <div class="callout"><span class="dot y"></span><div><b>告警记录与处置</b><span>按级别、类型、时间检索，记录处置人、处置备注与抑制次数。</span></div></div>
+      <div class="callout"><span class="dot r"></span><div><b>账号与操作审计</b><span>角色化权限（管理员 / 技术员 / 养殖户 / 访客）与登录、配置变更审计日志。</span></div></div>
+    </div>
+  </div>
+
+  <div class="ft"><span>运行地址：/console</span><span class="sp"></span><span>08 · CONSOLE</span></div>
+</section>
+
+<!-- ============ 08 成果与价值 ============ -->
+<section class="poster" id="p8">
+  <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+  <div class="hd">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 8c3 0 4-2 6-2s3 2 6 2 4-2 6-2v6c-2 0-4 2-6 2s-3-2-6-2-4 2-6 2z"/><path d="M2 16c3 0 4-2 6-2s3 2 6 2 4-2 6-2v5H2z"/></svg></div>
+    <div class="bt"><b>深蓝智护</b><i>DEEP BLUE GUARDIAN</i></div>
+    <div class="sp"></div>
+    <div class="sec">OUTCOME &amp; VALUE</div>
+    <div class="no">09 / 09</div>
+  </div>
+
+  <div style="padding:30px 0 0;flex:1;display:flex;flex-direction:column;">
+    <div class="title">从数据到决策的<span class="hl">闭环</span></div>
+    <div class="subtitle">感知、传输、研判、处置四段能力打通，风险发现由“事后上报”转为“提前研判”。</div>
+
+    <div class="statgrid" style="grid-template-columns:repeat(3,1fr);margin-top:32px;">
+      <div class="card" style="padding:26px 28px;"><h3>实物成果</h3><p>多参数水质浮标硬件原型：太阳能供电、六要素传感器、LoRa 回传、IP68 防护，支持海上长期无人值守。</p></div>
+      <div class="card" style="padding:26px 28px;"><h3>软件成果</h3><p>三维数字孪生大屏、管理后台、9 组业务接口与后台调度任务，覆盖数据接入、聚合、告警、预测全链路。</p></div>
+      <div class="card" style="padding:26px 28px;"><h3>算法成果</h3><p>赤潮四级风险预测模型（49 维特征工程）与红树林遥感分割 / 变化检测算法，权重与元数据随平台版本管理。</p></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:26px;">
+      <div class="stat"><div class="v cy">24 h</div><div class="k">时序输入窗口</div></div>
+      <div class="stat"><div class="v gr">48 h</div><div class="k">风险预测提前量</div></div>
+      <div class="stat"><div class="v yl">300 s</div><div class="k">原位采样间隔</div></div>
+      <div class="stat"><div class="v pu">7</div><div class="k">覆盖监测区域</div></div>
+    </div>
+
+    <div class="card" style="margin-top:26px;padding:26px 28px;">
+      <h3 style="font-size:19px;">应用价值</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:16px;">
+        <div class="callout"><span class="dot"></span><div><b>预警前置</b><span>赤潮风险提前 48 小时分级预警，为养殖户转移网箱、调整投饵与应急处置留出时间窗口。</span></div></div>
+        <div class="callout"><span class="dot g"></span><div><b>降低巡检成本</b><span>以原位连续观测替代高频人工巡检，异常时段可远程复核，减少无效出海。</span></div></div>
+        <div class="callout"><span class="dot y"></span><div><b>蓝碳可核查</b><span>红树林面积与健康度按期次留档，为生态修复成效核查提供连续、可追溯的数据依据。</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ft"><span>深蓝智护 · 连江海洋生态智能监测平台</span><span class="sp"></span><span>福建省福州市连江县</span></div>
+</section>
+
+</body>
+</html>

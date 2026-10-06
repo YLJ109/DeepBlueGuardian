@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>深蓝智护 · 连江海洋生态智能监测平台</title>
+<style>
+  :root{
+    --bg:#04101f;
+    --panel-bg:rgba(9,36,64,.55);
+    --panel-bg-2:rgba(6,26,48,.72);
+    --line:rgba(51,225,255,.38);
+    --line-soft:rgba(51,225,255,.16);
+    --cyan:#33e1ff;
+    --cyan-dim:#1b93b8;
+    --green:#29e7a0;
+    --yellow:#ffd166;
+    --orange:#ff9f43;
+    --red:#ff4d6d;
+    --purple:#a78bfa;
+    --text:#dff3ff;
+    --text-dim:#7fb3cc;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#02080f;overflow:hidden;}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC","Source Han Sans SC",sans-serif;
+    color:var(--text);
+    user-select:none;
+  }
+  #viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+  #screen{
+    width:1920px;height:1080px;flex:none;position:relative;overflow:hidden;
+    transform-origin:center center;
+    background:
+      radial-gradient(1200px 700px at 50% 42%, #0b3557 0%, rgba(6,26,48,.6) 45%, #04101f 78%),
+      linear-gradient(180deg,#061727 0%,#04101f 55%,#020a13 100%);
+  }
+  #screen::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(51,225,255,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(51,225,255,.045) 1px, transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(circle at 50% 45%, rgba(0,0,0,.85) 0%, transparent 78%);
+  }
+
+  /* ---------------- 顶栏 ---------------- */
+  .topbar{
+    position:absolute;top:0;left:0;right:0;height:72px;z-index:40;
+    display:flex;align-items:center;justify-content:space-between;padding:0 22px;
+    background:linear-gradient(180deg, rgba(10,44,76,.92), rgba(6,26,48,.35) 70%, transparent);
+    border-bottom:1px solid rgba(51,225,255,.18);
+  }
+  .topbar::after{
+    content:"";position:absolute;left:8%;right:8%;bottom:-1px;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(51,225,255,.65),transparent);
+  }
+  .brand{display:flex;align-items:center;gap:12px;min-width:330px;}
+  .brand-mark{
+    width:38px;height:38px;border-radius:9px;display:grid;place-items:center;flex:none;
+    background:linear-gradient(150deg,rgba(51,225,255,.28),rgba(51,225,255,.05));
+    border:1px solid rgba(51,225,255,.55);
+    box-shadow:0 0 18px rgba(51,225,255,.35), inset 0 0 14px rgba(51,225,255,.22);
+  }
+  .brand-mark svg{width:22px;height:22px;}
+  .brand-text .n{font-size:21px;font-weight:800;letter-spacing:3px;
+    background:linear-gradient(180deg,#ffffff,#8fe6ff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .brand-text .s{font-size:11px;color:var(--text-dim);letter-spacing:2.5px;margin-top:2px;}
+  .brand-tag{
+    margin-left:6px;font-size:11px;color:#9fe9ff;padding:4px 9px;border-radius:4px;
+    border:1px solid rgba(51,225,255,.4);background:rgba(51,225,255,.08);letter-spacing:1px;
+  }
+  .title-wrap{position:absolute;left:50%;transform:translateX(-50%);text-align:center;}
+  .title-wrap h1{
+    font-size:30px;font-weight:800;letter-spacing:7px;
+    background:linear-gradient(180deg,#ffffff 10%,#bdefff 55%,#4fc9f0 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 26px rgba(51,225,255,.35);
+  }
+  .title-wrap .sub{
+    margin-top:5px;font-size:10.5px;letter-spacing:4px;color:rgba(120,200,230,.75);
+  }
+  .title-wrap .deco{
+    position:absolute;top:16px;width:150px;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(51,225,255,.8));
+  }
+  .title-wrap .deco.l{right:calc(100% + 22px);}
+  .title-wrap .deco.r{left:calc(100% + 22px);transform:scaleX(-1);}
+  .topright{display:flex;align-items:center;gap:20px;min-width:330px;justify-content:flex-end;}
+  .top-item{display:flex;align-items:center;gap:7px;font-size:13px;color:#a9d8ec;}
+  .top-item b{font-family:Consolas,"Courier New",monospace;font-size:18px;color:#e8fbff;letter-spacing:1px;}
+  .top-item .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);}
+  .user-chip{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 5px;border-radius:20px;
+    border:1px solid rgba(51,225,255,.28);background:rgba(9,36,64,.6);}
+  .user-chip .av{width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(140deg,#33e1ff,#a78bfa);display:grid;place-items:center;
+    font-size:12px;font-weight:700;color:#04101f;}
+  .user-chip span{font-size:12px;color:#cfeaff;}
+
+  /* ---------------- 主区域 ---------------- */
+  .stage{
+    position:absolute;top:72px;left:0;right:0;bottom:64px;
+    display:grid;grid-template-columns:396px 1fr 396px;gap:14px;padding:12px 18px 6px;
+  }
+  .col{display:flex;flex-direction:column;gap:12px;min-height:0;}
+  .col.center{padding:0;position:relative;}
+
+  /* 玻璃拟态卡片 */
+  .card{
+    position:relative;flex:1;min-height:0;display:flex;flex-direction:column;
+    background:linear-gradient(160deg, rgba(12,48,82,.62), rgba(6,24,44,.72));
+    border:1px solid var(--line);
+    border-radius:6px;
+    box-shadow:0 0 20px rgba(20,120,180,.22), inset 0 0 26px rgba(25,120,180,.16);
+    padding:8px 12px 10px;
+    overflow:hidden;
+  }
+  .card::before,.card::after{
+    content:"";position:absolute;width:14px;height:14px;pointer-events:none;
+  }
+  .card::before{top:-1px;left:-1px;border-top:2px solid var(--cyan);border-left:2px solid var(--cyan);}
+  .card::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--cyan);border-right:2px solid var(--cyan);}
+  .card-title{
+    display:flex;align-items:center;gap:8px;height:26px;flex:none;
+    font-size:15px;font-weight:700;letter-spacing:2px;color:#e2f8ff;
+  }
+  .card-title .bdot{width:8px;height:8px;border-radius:50%;background:var(--cyan);
+    box-shadow:0 0 10px var(--cyan),0 0 20px rgba(51,225,255,.55);}
+  .card-title .line{flex:1;height:1px;margin-left:6px;
+    background:linear-gradient(90deg,rgba(51,225,255,.5),transparent);}
+  .card-body{flex:1;min-height:0;position:relative;}
+  .chart{width:100%;height:100%;}
+
+  /* 左一：核心指标 */
+  .metric-ring-wrap{display:flex;height:100%;gap:8px;align-items:center;}
+  .ring-box{position:relative;width:146px;height:100%;flex:none;}
+  #chartGauge{width:100%;height:100%;}
+  .metric-list{flex:1;display:flex;flex-direction:column;justify-content:center;gap:11px;}
+  .metric-row{display:flex;align-items:center;gap:8px;font-size:13.5px;}
+  .metric-row .ic{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;flex:none;
+    background:rgba(51,225,255,.12);border:1px solid rgba(51,225,255,.35);}
+  .metric-row .ic svg{width:13px;height:13px;}
+  .metric-row .k{color:#a9d8ec;min-width:76px;flex:none;letter-spacing:.5px;font-size:12.5px;}
+  .metric-row .v{font-family:Consolas,"Courier New",monospace;font-size:19px;font-weight:700;color:#eafcff;flex:1;min-width:0;text-align:right;}
+  .trend{font-size:11px;padding:1px 5px;border-radius:3px;flex:none;width:48px;text-align:center;}
+  .trend.up{color:var(--red);background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.35);}
+  .trend.down{color:var(--green);background:rgba(41,231,160,.1);border:1px solid rgba(41,231,160,.32);}
+  .trend.flat{color:var(--yellow);background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.3);}
+
+  /* 设备状态 */
+  .kpi-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;height:100%;}
+  .kpi{
+    display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:5px;
+    background:linear-gradient(90deg, rgba(20,80,130,.5), rgba(12,40,70,.28));
+    border-left:2px solid var(--cyan);
+  }
+  .kpi .k-ic{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;flex:none;
+    background:rgba(51,225,255,.12);border:1px solid rgba(51,225,255,.32);}
+  .kpi .k-ic svg{width:15px;height:15px;}
+  .kpi .k-t{font-size:11px;color:#a9d8ec;letter-spacing:.5px;line-height:1.25;}
+  .kpi .k-v{font-family:Consolas,monospace;font-size:19px;font-weight:700;color:#eafcff;line-height:1.2;}
+  .kpi .k-v small{font-size:12px;color:var(--text-dim);margin-left:2px;}
+
+  /* 中间沙盘 */
+  #sandbox{position:absolute;inset:0;border-radius:6px;overflow:hidden;
+    border:1px solid rgba(51,225,255,.22);
+    box-shadow:inset 0 0 80px rgba(20,90,150,.35);
+    background:radial-gradient(ellipse at 55% 55%, #0a3b5e 0%, #062033 45%, #04121f 80%);
+    cursor:grab;
+  }
+  #sandbox.dragging{cursor:grabbing;}
+  #gl{display:block;width:100%;height:100%;}
+  #labelLayer{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+  .map-label{
+    position:absolute;transform:translate(-50%,-50%);
+    font-size:14px;font-weight:700;letter-spacing:2px;color:#dff7ff;
+    padding:3px 10px;border-radius:3px;white-space:nowrap;
+    background:linear-gradient(90deg,rgba(8,42,72,.85),rgba(8,42,72,.45));
+    border-left:2px solid var(--cyan);
+    text-shadow:0 0 10px rgba(51,225,255,.6);
+  }
+  .map-label.minor{font-size:12px;letter-spacing:1px;color:#a9dbe9;border-left-color:rgba(51,225,255,.55);}
+
+  .nav-tabs{
+    position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:8;
+    display:flex;gap:8px;align-items:center;
+    width:max-content;
+  }
+  .nav-tab{
+    white-space:nowrap;
+    font-size:14px;letter-spacing:1.5px;padding:7px 20px;border-radius:3px;
+    color:#9cc9de;background:linear-gradient(180deg,rgba(10,44,76,.75),rgba(6,24,44,.55));
+    border:1px solid rgba(51,225,255,.2);cursor:pointer;transition:.25s;
+  }
+  .nav-tab.active{
+    color:#03121d;font-weight:700;
+    background:linear-gradient(180deg,#8fe9ff,#33c6ec);
+    border-color:rgba(51,225,255,.9);
+    box-shadow:0 0 18px rgba(51,225,255,.55);
+  }
+  .ai-banner{
+    position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:8;
+    padding:11px 34px;border-radius:4px;white-space:nowrap;
+    font-size:20px;font-weight:700;letter-spacing:2px;color:#fff;
+    background:linear-gradient(90deg,rgba(6,26,48,.2),rgba(6,30,56,.94) 18%,rgba(6,30,56,.94) 82%,rgba(6,26,48,.2));
+    border-top:1px solid rgba(51,225,255,.5);border-bottom:1px solid rgba(51,225,255,.5);
+    box-shadow:0 0 30px rgba(51,225,255,.25);
+  }
+  .ai-banner em{font-style:normal;color:var(--orange);text-shadow:0 0 14px rgba(255,159,67,.8);}
+  .legend{
+    position:absolute;left:20px;bottom:20px;z-index:8;display:flex;flex-direction:column;gap:6px;
+    font-size:12px;color:#a9d8ec;
+    padding:9px 12px;border-radius:4px;
+    background:rgba(6,24,44,.72);border:1px solid rgba(51,225,255,.25);
+  }
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+
+  /* 告警列表 */
+  .alert-scroll{height:100%;overflow:hidden;position:relative;}
+  .alert-item{
+    display:flex;align-items:center;gap:9px;padding:7px 9px;margin-bottom:6px;border-radius:4px;
+    background:linear-gradient(90deg,rgba(20,70,115,.5),rgba(10,34,58,.22));
+    border-left:3px solid var(--cyan);font-size:12.5px;
+  }
+  .alert-item.lv3{border-left-color:var(--red);background:linear-gradient(90deg,rgba(120,25,50,.45),rgba(30,10,20,.2));}
+  .alert-item.lv2{border-left-color:var(--orange);background:linear-gradient(90deg,rgba(120,70,20,.4),rgba(30,20,10,.18));}
+  .alert-item.lv1{border-left-color:var(--yellow);}
+  .alert-item .a-time{font-family:Consolas,monospace;color:var(--text-dim);flex:none;}
+  .alert-item .a-text{flex:1;color:#e2f5ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .alert-item .a-tag{font-size:10.5px;padding:1px 6px;border-radius:3px;flex:none;}
+  .tag-red{color:var(--red);border:1px solid rgba(255,77,109,.45);background:rgba(255,77,109,.1);}
+  .tag-orange{color:var(--orange);border:1px solid rgba(255,159,67,.45);background:rgba(255,159,67,.1);}
+  .tag-yellow{color:var(--yellow);border:1px solid rgba(255,209,102,.4);background:rgba(255,209,102,.1);}
+  .tag-cyan{color:var(--cyan);border:1px solid rgba(51,225,255,.4);background:rgba(51,225,255,.1);}
+
+  /* ---------------- 底部状态栏 ---------------- */
+  .statusbar{
+    position:absolute;left:0;right:0;bottom:0;height:64px;z-index:40;
+    display:flex;align-items:center;gap:16px;padding:0 20px;
+    background:linear-gradient(0deg, rgba(9,40,70,.95), rgba(6,26,48,.5));
+    border-top:1px solid rgba(51,225,255,.25);
+  }
+  .statusbar::before{
+    content:"";position:absolute;left:8%;right:8%;top:-1px;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(51,225,255,.7),transparent);
+  }
+  .sb-item{display:flex;align-items:center;gap:10px;padding-right:16px;border-right:1px solid rgba(51,225,255,.15);}
+  .sb-item:last-of-type{border-right:none;}
+  .sb-ic{width:34px;height:34px;border-radius:6px;display:grid;place-items:center;flex:none;
+    background:rgba(51,225,255,.1);border:1px solid rgba(51,225,255,.3);}
+  .sb-ic svg{width:19px;height:19px;}
+  .sb-txt .k{font-size:11px;color:var(--text-dim);letter-spacing:1px;}
+  .sb-txt .v{font-family:Consolas,monospace;font-size:19px;font-weight:700;color:#eafcff;line-height:1.15;}
+  .sb-txt .v small{font-size:11px;color:var(--text-dim);}
+  .ticker{
+    flex:1;height:34px;overflow:hidden;position:relative;border-radius:4px;
+    background:rgba(4,18,32,.6);border:1px solid rgba(51,225,255,.14);
+    display:flex;align-items:center;padding-left:12px;
+  }
+  .ticker .tk{font-size:13px;color:#9fd6ea;white-space:nowrap;letter-spacing:.6px;}
+  .ticker .tk b{color:var(--orange);}
+  .sb-right{display:flex;align-items:center;gap:12px;font-size:13px;color:#a9d8ec;flex:none;}
+  .sb-right .sys-ok{display:flex;align-items:center;gap:6px;color:var(--green);}
+  .sb-right .sys-ok i{width:8px;height:8px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 10px var(--green);animation:blink 1.8s infinite;}
+
+  /* ---------------- 告警弹窗 ---------------- */
+  .alert-popup{
+    position:absolute;top:136px;right:430px;width:396px;z-index:60;
+    padding:13px 16px 15px;border-radius:6px;
+    background:linear-gradient(150deg, rgba(72,12,28,.95), rgba(20,8,16,.92));
+    border:1px solid rgba(255,77,109,.75);
+    box-shadow:0 0 34px rgba(255,77,109,.5), inset 0 0 26px rgba(255,77,109,.18);
+    transform:translateX(460px);opacity:0;transition:transform .5s cubic-bezier(.2,.9,.25,1),opacity .5s;
+    pointer-events:none;
+  }
+  .alert-popup.show{transform:translateX(0);opacity:1;pointer-events:auto;}
+  .alert-popup.level-2{
+    background:linear-gradient(150deg, rgba(84,46,6,.95), rgba(26,16,4,.92));
+    border-color:rgba(255,159,67,.75);box-shadow:0 0 34px rgba(255,159,67,.45), inset 0 0 26px rgba(255,159,67,.16);
+  }
+  .alert-popup.level-1{
+    background:linear-gradient(150deg, rgba(80,68,10,.95), rgba(26,22,4,.92));
+    border-color:rgba(255,209,102,.7);box-shadow:0 0 34px rgba(255,209,102,.4), inset 0 0 26px rgba(255,209,102,.14);
+  }
+  .ap-head{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+  .ap-head .ap-dot{width:10px;height:10px;border-radius:50%;background:var(--red);
+    box-shadow:0 0 12px var(--red);animation:pulse 1.1s infinite;flex:none;}
+  .alert-popup.level-2 .ap-dot{background:var(--orange);box-shadow:0 0 12px var(--orange);}
+  .alert-popup.level-1 .ap-dot{background:var(--yellow);box-shadow:0 0 12px var(--yellow);}
+  .ap-head .ap-title{font-size:16px;font-weight:800;letter-spacing:1.5px;color:#fff;flex:1;}
+  .ap-head .ap-close{cursor:pointer;color:rgba(255,255,255,.55);font-size:17px;line-height:1;}
+  .ap-body{font-size:13px;color:rgba(255,235,240,.9);line-height:1.75;}
+  .ap-body .ap-kv{display:flex;gap:8px;}
+  .ap-body .ap-kv span:first-child{color:rgba(255,255,255,.5);min-width:62px;}
+  .ap-foot{margin-top:10px;display:flex;gap:9px;}
+  .ap-btn{
+    flex:1;text-align:center;font-size:12.5px;padding:6px 0;border-radius:3px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.28);color:#fff;background:rgba(255,255,255,.06);transition:.2s;
+  }
+  .ap-btn:hover{background:rgba(255,255,255,.16);}
+  .ap-btn.primary{background:linear-gradient(90deg,#ff4d6d,#ff7a5c);border-color:transparent;font-weight:700;}
+
+  /* 3D 悬浮提示 */
+  #tooltip3d{
+    position:absolute;z-index:30;min-width:186px;padding:9px 11px;border-radius:4px;
+    background:rgba(4,20,36,.94);border:1px solid rgba(51,225,255,.55);
+    box-shadow:0 0 20px rgba(51,225,255,.35);
+    font-size:12px;color:#cfeaf7;pointer-events:none;display:none;transform:translate(-50%,-115%);
+  }
+  #tooltip3d .t-name{font-size:13px;font-weight:700;color:#eafcff;margin-bottom:6px;letter-spacing:1px;}
+  #tooltip3d .t-row{display:flex;justify-content:space-between;gap:14px;line-height:1.7;}
+  #tooltip3d .t-row b{font-family:Consolas,monospace;color:#8fe6ff;}
+
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.5);opacity:.5;}}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
+  @keyframes flicker{0%,100%{opacity:.85;}50%{opacity:1;}}
+
+  .corner-deco{position:absolute;pointer-events:none;opacity:.55;}
+  .corner-deco.tl{top:4px;left:4px;}
+  .corner-deco.tr{top:4px;right:4px;transform:scaleX(-1);}
+  .corner-deco.bl{bottom:4px;left:4px;transform:scaleY(-1);}
+  .corner-deco.br{bottom:4px;right:4px;transform:scale(-1,-1);}
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="screen">
+
+    <!-- ============ 顶栏 ============ -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#8fe6ff" stroke-width="1.7" stroke-linecap="round">
+            <path d="M2 15c2.2 0 2.6-1.6 4.6-1.6S9.2 15 11.4 15s2.6-1.6 4.6-1.6S18.2 15 20.4 15"/>
+            <path d="M2 19c2.2 0 2.6-1.6 4.6-1.6S9.2 19 11.4 19s2.6-1.6 4.6-1.6S18.2 19 20.4 19"/>
+            <path d="M12 3v7M12 3l3 2.4M12 3L9 5.4"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="n">深蓝智护</div>
+          <div class="s">DEEP BLUE GUARDIAN</div>
+        </div>
+        <div class="brand-tag" id="brandTag">连江 · 黄岐半岛示范区</div>
+      </div>
+
+      <div class="title-wrap">
+        <div class="deco l"></div>
+        <div class="deco r"></div>
+        <h1>连江海洋生态智能监测平台</h1>
+        <div class="sub">OCEAN ECOLOGICAL INTELLIGENT MONITORING SYSTEM</div>
+      </div>
+
+      <div class="topright">
+        <div class="top-item"><span class="dot"></span>数据回传正常</div>
+        <div class="top-item"><b id="topTime">--:--:--</b></div>
+        <div class="top-item"><span id="topDate">----/--/--</span></div>
+        <div class="top-item">在线设备 <b id="topOnline">8/8</b></div>
+        <div class="user-chip"><div class="av">管</div><span>连江县海洋与渔业局 · 值班员</span></div>
+      </div>
+    </header>
+
+    <!-- ============ 主体三栏 ============ -->
+    <main class="stage">
+
+      <!-- ---------- 左栏 ---------- -->
+      <section class="col left">
+        <div class="card" style="flex:0 0 236px;">
+          <div class="card-title"><span class="bdot"></span>水质实时监测<span class="line"></span></div>
+          <div class="card-body">
+            <div class="metric-ring-wrap">
+              <div class="ring-box"><div id="chartGauge" class="chart"></div></div>
+              <div class="metric-list">
+                <div class="metric-row">
+                  <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#33e1ff" stroke-width="1.8"><path d="M14 14.8V4a2 2 0 1 0-4 0v10.8a4 4 0 1 0 4 0Z"/></svg></div>
+                  <div class="k">水温 ℃</div><div class="v" id="v-temp">21.6</div>
+                  <div class="trend up" id="t-temp">↑ 0.4</div>
+                </div>
+                <div class="metric-row">
+                  <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#29e7a0" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></div>
+                  <div class="k">叶绿素a μg/L</div><div class="v" id="v-chl">3.8</div>
+                  <div class="trend up" id="t-chl">↑ 0.6</div>
+                </div>
+                <div class="metric-row">
+                  <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.8"><circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5"/></svg></div>
+                  <div class="k">溶解氧 mg/L</div><div class="v" id="v-do">6.8</div>
+                  <div class="trend down" id="t-do">↓ 0.3</div>
+                </div>
+                <div class="metric-row">
+                  <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="1.8"><path d="M7 4h10M9 4v14a3 3 0 1 0 6 0V4"/><path d="M12 9h5"/></svg></div>
+                  <div class="k">pH 值</div><div class="v" id="v-ph">8.1</div>
+                  <div class="trend flat" id="t-ph">→ 0.0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="flex:0 0 210px;">
+          <div class="card-title"><span class="bdot"></span>水质监测曲线 · 黄岐湾中部<span class="line"></span></div>
+          <div class="card-body"><div id="chartLine" class="chart"></div></div>
+        </div>
+
+        <div class="card" style="flex:1 1 auto;min-height:150px;">
+          <div class="card-title"><span class="bdot"></span>近 7 天叶绿素 a 变化<span class="line"></span></div>
+          <div class="card-body"><div id="chartChl" class="chart"></div></div>
+        </div>
+
+        <div class="card" style="flex:0 0 138px;">
+          <div class="card-title"><span class="bdot"></span>设备状态<span class="line"></span></div>
+          <div class="card-body">
+            <div class="kpi-grid">
+              <div class="kpi"><div class="k-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#33e1ff" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div>
+                <div><div class="k-t">水质浮标在线</div><div class="k-v" id="k-buoy">8<small>/8</small></div></div></div>
+              <div class="kpi"><div class="k-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#29e7a0" stroke-width="1.7"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg></div>
+                <div><div class="k-t">摄像头在线</div><div class="k-v" id="k-cam">8<small>/8</small></div></div></div>
+              <div class="kpi"><div class="k-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="1.7"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
+                <div><div class="k-t">边缘网关在线</div><div class="k-v" id="k-gw">8<small>/8</small></div></div></div>
+              <div class="kpi"><div class="k-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.7"><path d="M12 3v4M12 17v4M5 12H3M21 12h-2M6.5 6.5 5 5M19 19l-1.5-1.5M17.5 6.5 19 5M5 19l1.5-1.5"/><circle cx="12" cy="12" r="4"/></svg></div>
+                <div><div class="k-t">无人机巡检任务</div><div class="k-v" id="k-uav">3<small> 项</small></div></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- 中栏：三维沙盘 ---------- -->
+      <section class="col center">
+        <div id="sandbox">
+          <canvas id="gl"></canvas>
+          <div id="labelLayer"></div>
+          <div id="tooltip3d">
+            <div class="t-name">浮标</div>
+            <div class="t-row"><span>水温</span><b class="t-temp">--</b></div>
+            <div class="t-row"><span>叶绿素a</span><b class="t-chl">--</b></div>
+            <div class="t-row"><span>溶解氧</span><b class="t-do">--</b></div>
+            <div class="t-row"><span>pH</span><b class="t-ph">--</b></div>
+            <div class="t-row"><span>状态</span><b class="t-st">--</b></div>
+          </div>
+        </div>
+
+        <div class="nav-tabs">
+          <div class="nav-tab active">深蓝智护</div>
+          <div class="nav-tab">连江海洋生态监测</div>
+          <div class="nav-tab">赤潮预警</div>
+          <div class="nav-tab">红树林监测</div>
+          <div class="nav-tab">设备管理</div>
+        </div>
+
+        <div class="legend">
+          <div><i style="background:#33e1ff;box-shadow:0 0 8px #33e1ff"></i>水质浮标（正常）</div>
+          <div><i style="background:#ff4d6d;box-shadow:0 0 8px #ff4d6d"></i>网箱告警 / 高风险</div>
+          <div><i style="background:#29e7a0;box-shadow:0 0 8px #29e7a0"></i>红树林监测区</div>
+          <div><i style="background:#ffd166;box-shadow:0 0 8px #ffd166"></i>摄像监控点</div>
+        </div>
+
+        <div class="ai-banner" id="aiBanner">AI 检测：<em>黄岐湾中部赤潮风险升高</em>，建议提前布设应急监测</div>
+      </section>
+
+      <!-- ---------- 右栏 ---------- -->
+      <section class="col right">
+        <div class="card" style="flex:0 0 200px;">
+          <div class="card-title"><span class="bdot"></span>赤潮 7 天风险等级<span class="line"></span></div>
+          <div class="card-body" style="display:flex;">
+            <div style="width:160px;flex:none;position:relative;">
+              <div id="chartRiskRing" class="chart"></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+              <div style="text-align:center;font-size:15px;font-weight:700;color:#ffd166;letter-spacing:1.5px;margin-bottom:2px;" id="riskLevelText">Ⅲ 级 · 中高风险</div>
+              <div style="flex:1;min-height:0;"><div id="chartRiskTrend" class="chart"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="flex:0 0 186px;">
+          <div class="card-title"><span class="bdot"></span>红树林生态健康指数<span class="line"></span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:baseline;gap:10px;padding:2px 4px 6px;">
+              <span style="font-size:12px;color:#7fb3cc;">马鼻红树林湿地</span>
+              <span style="font-family:Consolas,monospace;font-size:30px;font-weight:800;color:#29e7a0;line-height:1;" id="mgScore">72</span>
+              <span style="font-size:12px;color:#7fb3cc;">分 · 健康</span>
+              <span style="margin-left:auto;font-size:12px;color:#29e7a0;">▲ 2.4%</span>
+            </div>
+            <div style="flex:1;min-height:0;"><div id="chartMangrove" class="chart"></div></div>
+          </div>
+        </div>
+
+        <div class="card" style="flex:0 0 216px;">
+          <div class="card-title"><span class="bdot"></span>海域生态占比<span class="line"></span></div>
+          <div class="card-body"><div id="chartPie" class="chart"></div></div>
+        </div>
+
+        <div class="card" style="flex:1 1 auto;min-height:190px;">
+          <div class="card-title"><span class="bdot"></span>实时告警与统计<span class="line"></span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:6px;">
+            <div style="height:88px;flex:none;"><div id="chartAlertBar" class="chart"></div></div>
+            <div class="alert-scroll" id="alertList"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============ 底部状态栏 ============ -->
+    <footer class="statusbar">
+      <div class="sb-item">
+        <div class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#33e1ff" stroke-width="1.7"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div>
+        <div class="sb-txt"><div class="k">数据总量</div><div class="v" id="sbTotal">3438<small> 条</small></div></div>
+      </div>
+      <div class="sb-item">
+        <div class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#ff9f43" stroke-width="1.7"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 9v5M12 17h.01"/></svg></div>
+        <div class="sb-txt"><div class="k">今日告警</div><div class="v" id="sbAlert">24<small> 条</small></div></div>
+      </div>
+      <div class="sb-item">
+        <div class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#29e7a0" stroke-width="1.7"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg></div>
+        <div class="sb-txt"><div class="k">设备在线率</div><div class="v" id="sbOnline">98.7<small>%</small></div></div>
+      </div>
+      <div class="sb-item">
+        <div class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg></div>
+        <div class="sb-txt"><div class="k">活动任务</div><div class="v" id="sbTask">6<small> 项</small></div></div>
+      </div>
+      <div class="ticker"><div class="tk" id="ticker">系统运行正常 · 8 个浮标点位数据回传中 · 黄岐半岛近岸叶绿素 a 持续上升，已启动加密采样</div></div>
+      <div class="sb-right">
+        <div class="sys-ok"><i></i>系统正常</div>
+        <div>边缘网关 8/8</div>
+        <div>模型版本 red_tide_v2.1</div>
+      </div>
+    </footer>
+
+    <!-- ============ 告警弹窗 ============ -->
+    <div class="alert-popup" id="alertPopup">
+      <div class="ap-head">
+        <div class="ap-dot"></div>
+        <div class="ap-title" id="apTitle">赤潮风险预警</div>
+        <div class="ap-close" id="apClose">✕</div>
+      </div>
+      <div class="ap-body">
+        <div class="ap-kv"><span>监测点位</span><span id="apPoint">黄岐半岛近岸 · LJ-P01-BUOY-01</span></div>
+        <div class="ap-kv"><span>风险等级</span><span id="apLevel">Ⅲ级 · 中高风险（概率 0.82）</span></div>
+        <div class="ap-kv"><span>主要因子</span><span id="apFactor">叶绿素 a 持续升高 + 水温上升</span></div>
+        <div class="ap-kv"><span>建议措施</span><span>提前布设应急监测，通知养殖户核查网箱</span></div>
+      </div>
+      <div class="ap-foot">
+        <div class="ap-btn" id="apIgnore">稍后处理</div>
+        <div class="ap-btn primary" id="apHandle">立即定位处置</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="lib/three.min.js"></script>
+<script src="lib/echarts.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================
+     0. 屏幕等比缩放
+     ========================================================= */
+  var DESIGN_W = 1920, DESIGN_H = 1080;
+  var screenEl = document.getElementById('screen');
+  function fitScreen() {
+    var s = Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H);
+    screenEl.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fitScreen);
+  fitScreen();
+
+  /* =========================================================
+     1. 数据模型
+     ========================================================= */
+  var CFG = {
+    seaLevel: 0,
+    worldX: 34, worldZ: 24
+  };
+
+  // 海岸线：z 小于 coast(x) 为陆地，大于为海域
+  function coastZ(x) {
+    return -2 + 6 * Math.sin(x * 0.12) + 3 * Math.cos(x * 0.07 + 1.2) + 1.6 * Math.sin(x * 0.31 + 0.6);
+  }
+  function seaZ(x, offset) { return coastZ(x) + offset; }
+
+  // 风险等级 -> 颜色（三维标记与图表共用）
+  function levelColor(l) {
+    return l >= 3 ? 0xff4d6d : (l === 2 ? 0xff9f43 : 0x33e1ff);
+  }
+
+  var BUOYS = [
+    { id: 'LJ-P01-BUOY-01', name: '黄岐半岛近岸', x: -17, off: 5.0, temp: 21.6, chl: 4.6, dox: 6.5, ph: 8.1, level: 3 },
+    { id: 'LJ-P01-BUOY-02', name: '黄岐湾中部',   x: -11, off: 8.0, temp: 21.9, chl: 5.2, dox: 6.3, ph: 8.2, level: 3 },
+    { id: 'LJ-P02-BUOY-01', name: '定海湾',       x: -3,  off: 6.5, temp: 21.2, chl: 3.1, dox: 7.0, ph: 8.0, level: 1 },
+    { id: 'LJ-P02-BUOY-02', name: '定海湾外缘',   x: 3,   off: 10.0, temp: 21.0, chl: 2.6, dox: 7.2, ph: 8.0, level: 1 },
+    { id: 'LJ-P03-BUOY-01', name: '筱埕养殖区',   x: -24, off: 4.5, temp: 22.1, chl: 3.9, dox: 6.1, ph: 8.1, level: 2 },
+    { id: 'LJ-P03-BUOY-02', name: '苔菉养殖区',   x: 9,   off: 5.0, temp: 21.5, chl: 3.3, dox: 6.8, ph: 8.0, level: 1 },
+    { id: 'LJ-P04-BUOY-01', name: '马鼻红树林',   x: -30, off: 3.2, temp: 22.4, chl: 4.1, dox: 5.9, ph: 7.9, level: 2 },
+    { id: 'LJ-P05-BUOY-01', name: '敖江口',       x: -6,  off: 3.0, temp: 22.0, chl: 4.4, dox: 6.4, ph: 7.8, level: 2 }
+  ].map(function (b) { b.z = seaZ(b.x, b.off); return b; });
+
+  var CAGES = [
+    { x: -8, z: seaZ(-8, 3.6), n: '定海湾网箱区 A', alarm: false },
+    { x: -1, z: seaZ(-1, 4.4), n: '定海湾网箱区 B', alarm: false },
+    { x: 7,  z: seaZ(7, 3.4),  n: '苔菉网箱区',     alarm: false }
+  ];
+
+  var MANGROVES = [
+    { x: -30, z: coastZ(-30) - 1.0, r: 3.2, n: '马鼻红树林' },
+    { x: -22, z: coastZ(-22) - 0.8, r: 2.2, n: '敖江口红树林' },
+    { x: 14,  z: coastZ(14) - 0.9,  r: 2.0, n: '罗源湾南岸红树林' }
+  ];
+
+  var LANDMARKS = [
+    { x: -17, z: coastZ(-17) - 4.5, t: '黄岐半岛', minor: false },
+    { x: -3,  z: seaZ(-3, 2.4),      t: '定海湾',   minor: false },
+    { x: -30, z: coastZ(-30) - 2.4,  t: '马鼻红树林', minor: false },
+    { x: -24, z: coastZ(-24) - 2.0,  t: '筱埕',     minor: true },
+    { x: 9,   z: coastZ(9) - 2.6,    t: '苔菉',     minor: true },
+    { x: 16,  z: coastZ(16) - 3.0,   t: '罗源湾',   minor: true },
+    { x: -6,  z: seaZ(-6, 12.0),     t: '东海海域', minor: true }
+  ];
+
+  var state = {
+    total: 3438,
+    alertToday: 24,
+    online: 98.7,
+    tasks: 6,
+    riskProb: 0.82,
+    riskLevel: 3,
+    mgScore: 72
+  };
+
+  /* =========================================================
+     2. ECharts 主题与图表
+     ========================================================= */
+  var C = { cyan: '#33e1ff', green: '#29e7a0', yellow: '#ffd166', orange: '#ff9f43', red: '#ff4d6d', purple: '#a78bfa' };
+  var AXIS_LINE = { lineStyle: { color: 'rgba(51,225,255,.22)' } };
+  var AXIS_LABEL = { color: '#7fb3cc', fontSize: 10 };
+  var SPLIT_LINE = { lineStyle: { color: 'rgba(51,225,255,.10)', type: 'dashed' } };
+
+  function baseGrid(l, r, t, b) { return { left: l, right: r, top: t, bottom: b, containLabel: true }; }
+  function tooltipStyle() {
+    return {
+      backgroundColor: 'rgba(4,20,36,.94)',
+      borderColor: 'rgba(51,225,255,.5)',
+      borderWidth: 1,
+      textStyle: { color: '#cfeaf7', fontSize: 11 }
+    };
+  }
+
+  var charts = {};
+
+  function initGauge() {
+    var el = document.getElementById('chartGauge');
+    if (!el || !window.echarts) return;
+    charts.gauge = echarts.init(el);
+    charts.gauge.setOption({
+      series: [{
+        type: 'gauge',
+        startAngle: 90,
+        endAngle: -270,
+        radius: '82%',
+        center: ['50%', '50%'],
+        min: 0, max: 40,
+        progress: {
+          show: true, overlap: false, roundCap: false, clip: false,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+              { offset: 0, color: '#8fe9ff' }, { offset: 1, color: '#1ba7d8' }
+            ]),
+            shadowBlur: 16, shadowColor: 'rgba(51,225,255,.75)'
+          }
+        },
+        axisLine: { lineStyle: { width: 10, color: [[1, 'rgba(51,225,255,.13)']] } },
+        pointer: { show: false },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        axisLabel: { show: false },
+        anchor: { show: false },
+        title: { show: true, offsetCenter: [0, '30%'], color: '#7fb3cc', fontSize: 11, fontFamily: 'Microsoft YaHei' },
+        detail: {
+          valueAnimation: true, offsetCenter: [0, '-4%'], color: '#eafcff',
+          fontSize: 34, fontWeight: 700, fontFamily: 'Consolas, monospace',
+          formatter: function (v) { return v.toFixed(1); }
+        },
+        data: [{ value: 21.6, name: '水温 ℃' }]
+      }]
+    });
+  }
+
+  function initLine() {
+    var el = document.getElementById('chartLine');
+    if (!el || !window.echarts) return;
+    charts.line = echarts.init(el);
+    var xs = [], t1 = [], t2 = [], t3 = [];
+    for (var i = 0; i < 24; i++) {
+      xs.push((i % 24 < 10 ? '0' : '') + (i % 24) + ':00');
+      t1.push(+(21.0 + Math.sin(i / 3) * 0.9 + Math.random() * 0.25).toFixed(2));
+      t2.push(+(6.4 + Math.cos(i / 4) * 0.6 + Math.random() * 0.2).toFixed(2));
+      t3.push(+(8.05 + Math.sin(i / 5) * 0.12 + Math.random() * 0.04).toFixed(2));
+    }
+    charts.line.setOption({
+      tooltip: Object.assign({ trigger: 'axis' }, tooltipStyle()),
+      legend: {
+        data: ['水温 ℃', '溶解氧 mg/L', 'pH'],
+        textStyle: { color: '#9cc9de', fontSize: 10.5 },
+        itemWidth: 12, itemHeight: 6, top: 0, right: 0, itemGap: 10
+      },
+      grid: baseGrid(8, 8, 26, 6),
+      xAxis: {
+        type: 'category', boundaryGap: false, data: xs,
+        axisLine: AXIS_LINE, axisTick: { show: false },
+        axisLabel: Object.assign({}, AXIS_LABEL, { interval: 5 })
+      },
+      yAxis: [
+        { type: 'value', name: '℃ / mg/L', nameTextStyle: { color: '#6b9cb3', fontSize: 9.5 }, min: 0, max: 26,
+          axisLine: { show: false }, axisTick: { show: false }, splitLine: SPLIT_LINE, axisLabel: AXIS_LABEL },
+        { type: 'value', name: 'pH', nameTextStyle: { color: '#6b9cb3', fontSize: 9.5 }, min: 6, max: 10,
+          axisLine: { show: false }, axisTick: { show: false }, splitLine: { show: false }, axisLabel: AXIS_LABEL }
+      ],
+      series: [
+        {
+          name: '水温 ℃', type: 'line', smooth: true, symbol: 'none', data: t1,
+          lineStyle: { width: 1.8, color: C.cyan, shadowBlur: 12, shadowColor: C.cyan },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(51,225,255,.38)' }, { offset: 1, color: 'rgba(51,225,255,0)' }
+            ])
+          }
+        },
+        {
+          name: '溶解氧 mg/L', type: 'line', smooth: true, symbol: 'none', data: t2,
+          lineStyle: { width: 1.6, color: C.purple, shadowBlur: 10, shadowColor: C.purple }
+        },
+        {
+          name: 'pH', type: 'line', smooth: true, symbol: 'none', yAxisIndex: 1, data: t3,
+          lineStyle: { width: 1.6, color: C.yellow, shadowBlur: 10, shadowColor: C.yellow }
+        }
+      ]
+    });
+  }
+
+  function initChl() {
+    var el = document.getElementById('chartChl');
+    if (!el || !window.echarts) return;
+    charts.chl = echarts.init(el);
+    charts.chl.setOption({
+      tooltip: Object.assign({ trigger: 'axis' }, tooltipStyle()),
+      grid: baseGrid(8, 10, 20, 4),
+      xAxis: {
+        type: 'category',
+        data: ['09-30', '10-01', '10-02', '10-03', '10-04', '10-05', '10-06'],
+        axisLine: AXIS_LINE, axisTick: { show: false }, axisLabel: AXIS_LABEL
+      },
+      yAxis: {
+        type: 'value', name: 'μg/L', nameTextStyle: { color: '#6b9cb3', fontSize: 9.5 },
+        axisLine: { show: false }, axisTick: { show: false }, splitLine: SPLIT_LINE, axisLabel: AXIS_LABEL
+      },
+      series: [
+        {
+          name: '叶绿素 a', type: 'bar', barWidth: 13, data: [2.4, 2.9, 3.1, 3.6, 4.2, 4.9, 5.2],
+          itemStyle: {
+            borderRadius: [3, 3, 0, 0],
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: '#8fe9ff' }, { offset: .5, color: '#33b7e0' }, { offset: 1, color: 'rgba(51,120,180,.35)' }
+            ]),
+            shadowBlur: 12, shadowColor: 'rgba(51,225,255,.5)'
+          }
+        },
+        {
+          name: '趋势', type: 'line', smooth: true, symbol: 'circle', symbolSize: 5,
+          data: [2.4, 2.9, 3.1, 3.6, 4.2, 4.9, 5.2],
+          lineStyle: { color: C.orange, width: 2, shadowBlur: 10, shadowColor: C.orange },
+          itemStyle: { color: C.orange }
+        }
+      ]
+    });
+  }
+
+  function initRiskRing() {
+    var el = document.getElementById('chartRiskRing');
+    if (!el || !window.echarts) return;
+    charts.riskRing = echarts.init(el);
+    charts.riskRing.setOption({
+      series: [{
+        type: 'pie', radius: ['62%', '82%'], center: ['50%', '50%'],
+        silent: true, label: { show: false }, labelLine: { show: false },
+        startAngle: 90,
+        data: [
+          {
+            value: 82,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+                { offset: 0, color: '#ff9fd0' }, { offset: .5, color: '#a78bfa' }, { offset: 1, color: '#7c5cf5' }
+              ]),
+              shadowBlur: 20, shadowColor: 'rgba(167,139,250,.75)'
+            }
+          },
+          { value: 18, itemStyle: { color: 'rgba(167,139,250,.13)' } }
+        ]
+      }],
+      graphic: [
+        { type: 'text', left: 'center', top: '38%', style: { text: '82%', fill: '#eafcff', fontSize: 28, fontWeight: 700, fontFamily: 'Consolas, monospace' } },
+        { type: 'text', left: 'center', top: '60%', style: { text: '赤潮风险概率', fill: '#7fb3cc', fontSize: 11 } }
+      ]
+    });
+  }
+
+  function initRiskTrend() {
+    var el = document.getElementById('chartRiskTrend');
+    if (!el || !window.echarts) return;
+    charts.riskTrend = echarts.init(el);
+    charts.riskTrend.setOption({
+      tooltip: Object.assign({ trigger: 'axis' }, tooltipStyle()),
+      grid: baseGrid(4, 8, 6, 2),
+      xAxis: {
+        type: 'category', boundaryGap: false,
+        data: ['10-06', '10-07', '10-08', '10-09', '10-10', '10-11', '10-12'],
+        axisLine: { show: false }, axisTick: { show: false }, axisLabel: Object.assign({}, AXIS_LABEL, { fontSize: 9 }),
+      },
+      yAxis: { type: 'value', min: 0, max: 1, show: false },
+      series: [{
+        type: 'line', smooth: true, symbol: 'none', data: [0.35, 0.52, 0.68, 0.82, 0.79, 0.61, 0.44],
+        lineStyle: { color: C.purple, width: 2, shadowBlur: 12, shadowColor: C.purple },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(167,139,250,.55)' }, { offset: 1, color: 'rgba(167,139,250,0)' }
+          ])
+        }
+      }]
+    });
+  }
+
+  function initMangrove() {
+    var el = document.getElementById('chartMangrove');
+    if (!el || !window.echarts) return;
+    charts.mangrove = echarts.init(el);
+    charts.mangrove.setOption({
+      tooltip: Object.assign({ trigger: 'axis' }, tooltipStyle()),
+      grid: baseGrid(4, 6, 6, 2),
+      xAxis: {
+        type: 'category',
+        data: ['05', '06', '07', '08', '09', '10'],
+        axisLine: AXIS_LINE, axisTick: { show: false }, axisLabel: AXIS_LABEL
+      },
+      yAxis: { type: 'value', min: 0, max: 100, show: false },
+      series: [{
+        type: 'bar', barWidth: 16,
+        data: [
+          { value: 64, itemStyle: { color: '#3f7f6a' } },
+          { value: 66, itemStyle: { color: '#3f8f72' } },
+          { value: 65, itemStyle: { color: '#3f8f72' } },
+          { value: 68, itemStyle: { color: '#2fa87c' } },
+          { value: 70, itemStyle: { color: '#29c896' } },
+          { value: 72, itemStyle: { color: '#29e7a0' } }
+        ],
+        itemStyle: { borderRadius: [3, 3, 0, 0], shadowBlur: 13, shadowColor: 'rgba(41,231,160,.55)' }
+      }]
+    });
+  }
+
+  function initPie() {
+    var el = document.getElementById('chartPie');
+    if (!el || !window.echarts) return;
+    charts.pie = echarts.init(el);
+    charts.pie.setOption({
+      tooltip: Object.assign({ trigger: 'item', formatter: '{b}：{c} km²（{d}%）' }, tooltipStyle()),
+      legend: {
+        orient: 'vertical', right: 6, top: 'center', itemWidth: 9, itemHeight: 9,
+        textStyle: { color: '#9cc9de', fontSize: 11 }, itemGap: 11
+      },
+      series: [{
+        type: 'pie', radius: ['40%', '72%'], center: ['33%', '50%'],
+        roseType: false, avoidLabelOverlap: true,
+        itemStyle: { borderColor: 'rgba(4,16,31,.9)', borderWidth: 2 },
+        label: { show: false }, labelLine: { show: false },
+        emphasis: { scale: true, scaleSize: 6, itemStyle: { shadowBlur: 20, shadowColor: 'rgba(51,225,255,.7)' } },
+        data: [
+          { value: 18.4, name: '红树林湿地', itemStyle: { color: C.green } },
+          { value: 26.7, name: '滩涂浅滩', itemStyle: { color: C.cyan } },
+          { value: 41.2, name: '养殖海域', itemStyle: { color: C.orange } },
+          { value: 63.5, name: '开阔海域', itemStyle: { color: '#2f7fd6' } },
+          { value: 12.3, name: '其他生态区', itemStyle: { color: C.purple } }
+        ]
+      }]
+    });
+  }
+
+  function initAlertBar() {
+    var el = document.getElementById('chartAlertBar');
+    if (!el || !window.echarts) return;
+    charts.alertBar = echarts.init(el);
+    charts.alertBar.setOption({
+      tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' } }, tooltipStyle()),
+      legend: {
+        data: ['Ⅲ级', 'Ⅱ级', 'Ⅰ级'], textStyle: { color: '#9cc9de', fontSize: 10 },
+        itemWidth: 10, itemHeight: 6, top: 0, right: 0, itemGap: 9
+      },
+      grid: baseGrid(4, 4, 20, 2),
+      xAxis: {
+        type: 'category', data: ['10-02', '10-03', '10-04', '10-05', '10-06'],
+        axisLine: AXIS_LINE, axisTick: { show: false }, axisLabel: Object.assign({}, AXIS_LABEL, { fontSize: 9 })
+      },
+      yAxis: { type: 'value', show: false, splitLine: { show: false } },
+      series: [
+        { name: 'Ⅰ级', type: 'bar', stack: 'a', barWidth: 12, data: [3, 4, 5, 4, 6], itemStyle: { color: C.yellow } },
+        { name: 'Ⅱ级', type: 'bar', stack: 'a', barWidth: 12, data: [2, 3, 4, 5, 7], itemStyle: { color: C.orange } },
+        { name: 'Ⅲ级', type: 'bar', stack: 'a', barWidth: 12, data: [1, 2, 3, 5, 4], itemStyle: { color: C.red, borderRadius: [3, 3, 0, 0] } }
+      ]
+    });
+  }
+
+  function initCharts() {
+    if (!window.echarts) { console.warn('ECharts 未加载'); return; }
+    initGauge(); initLine(); initChl(); initRiskRing(); initRiskTrend();
+    initMangrove(); initPie(); initAlertBar();
+  }
+
+  function updateGauge(v) {
+    if (!charts.gauge) return;
+    charts.gauge.setOption({ series: [{ data: [{ value: +v.toFixed(1), name: '水温 ℃' }] }] });
+  }
+  function updateRisk(prob) {
+    var p = Math.round(prob * 100);
+    if (charts.riskRing) {
+      charts.riskRing.setOption({
+        series: [{ data: [
+          { value: p, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+            { offset: 0, color: '#ff9fd0' }, { offset: .5, color: '#a78bfa' }, { offset: 1, color: '#7c5cf5' }]),
+            shadowBlur: 20, shadowColor: 'rgba(167,139,250,.75)' } },
+          { value: 100 - p, itemStyle: { color: 'rgba(167,139,250,.13)' } }
+        ] }],
+        graphic: [
+          { type: 'text', left: 'center', top: '38%', style: { text: p + '%', fill: '#eafcff', fontSize: 28, fontWeight: 700, fontFamily: 'Consolas, monospace' } },
+          { type: 'text', left: 'center', top: '60%', style: { text: '赤潮风险概率', fill: '#7fb3cc', fontSize: 11 } }
+        ]
+      });
+    }
+  }
+
+  /* =========================================================
+     3. Three.js 三维海域沙盘
+     ========================================================= */
+  var three = { ready: false };
+
+  function hash2(x, y) {
+    var n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+    return n - Math.floor(n);
+  }
+  function valueNoise(x, y) {
+    var xi = Math.floor(x), yi = Math.floor(y);
+    var xf = x - xi, yf = y - yi;
+    var u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+    var a = hash2(xi, yi), b = hash2(xi + 1, yi), c = hash2(xi, yi + 1), d = hash2(xi + 1, yi + 1);
+    return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+  }
+  function fbm(x, y) {
+    var s = 0, amp = 0.5, f = 1;
+    for (var i = 0; i < 5; i++) { s += amp * valueNoise(x * f, y * f); f *= 2.03; amp *= 0.5; }
+    return s;
+  }
+
+  function terrainHeight(x, z) {
+    var c = coastZ(x);
+    var t = c - z;                       // >0 为陆地
+    var n1 = fbm(x * 0.24 + 8, z * 0.24 + 3);
+    var n2 = fbm(x * 0.075 + 2, z * 0.075 + 9);
+    var h;
+    if (t > 0) {
+      var k = Math.min(1, t / 15);
+      h = Math.pow(k, 1.4) * (3.0 + n2 * 7.6) + Math.min(1, t / 3) * 0.55 + n1 * k * 2.8;
+    } else {
+      var d = Math.min(1, -t / 12);
+      h = -(d * d) * 6.5 - 0.35 - n1 * 1.2;
+    }
+    // 黄岐半岛隆起，增加地形层次
+    var pen = Math.exp(-(((x + 17) * (x + 17)) / 90 + ((z + 6) * (z + 6)) / 40));
+    h += pen * 2.6;
+    // 岛屿
+    var isl = Math.exp(-(((x - 12) * (x - 12)) / 7 + ((z - 13) * (z - 13)) / 6));
+    h += isl * 2.0;
+    var isl2 = Math.exp(-(((x + 4) * (x + 4)) / 9 + ((z - 15) * (z - 15)) / 8));
+    h += isl2 * 1.5;
+    return h;
+  }
+
+  function initThree() {
+    if (!window.THREE) { console.warn('Three.js 未加载'); return; }
+    var canvas = document.getElementById('gl');
+    var host = document.getElementById('sandbox');
+    var W = host.clientWidth, H = host.clientHeight;
+
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(W, H, false);
+
+    var scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x07304f, 0.0105);
+
+    var camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 400);
+    var camTarget = new THREE.Vector3(-2, 0, 4);
+    camera.position.set(-6, 26, 40);
+    camera.lookAt(camTarget);
+
+    scene.add(new THREE.AmbientLight(0x8fb6cc, 0.55));
+    var dir = new THREE.DirectionalLight(0xd8f2ff, 1.0);
+    dir.position.set(-22, 34, 26);
+    scene.add(dir);
+    var dir2 = new THREE.DirectionalLight(0x66d8ff, 0.34);
+    dir2.position.set(24, 16, -18);
+    scene.add(dir2);
+    var dir3 = new THREE.DirectionalLight(0xbfe4ff, 0.22);
+    dir3.position.set(6, 10, 40);
+    scene.add(dir3);
+
+    /* ---- 陆地地形 ---- */
+    var SEG_X = 200, SEG_Z = 150;
+    var geo = new THREE.PlaneGeometry(CFG.worldX * 2, CFG.worldZ * 2, SEG_X, SEG_Z);
+    geo.rotateX(-Math.PI / 2);
+    var pos = geo.attributes.position;
+    var colors = new Float32Array(pos.count * 3);
+    var cDeep = new THREE.Color(0x0b2c44);
+    var cShallow = new THREE.Color(0x1a6a8c);
+    var cSand = new THREE.Color(0x6b7a54);
+    var cLow = new THREE.Color(0x33704b);
+    var cMid = new THREE.Color(0x28573c);
+    var cHigh = new THREE.Color(0x3a5c46);
+    var tmpC = new THREE.Color();
+
+    for (var i = 0; i < pos.count; i++) {
+      var x = pos.getX(i), z = pos.getZ(i);
+      var y = terrainHeight(x, z);
+      pos.setY(i, y);
+      if (y < -1.6) tmpC.copy(cDeep).lerp(cShallow, THREE.MathUtils.clamp((y + 6) / 4.4, 0, 1));
+      else if (y < 0.55) tmpC.copy(cShallow).lerp(cSand, THREE.MathUtils.clamp((y + 1.6) / 2.15, 0, 1));
+      else if (y < 1.9) tmpC.copy(cSand).lerp(cLow, THREE.MathUtils.clamp((y - 0.55) / 1.35, 0, 1));
+      else if (y < 5.6) tmpC.copy(cLow).lerp(cMid, THREE.MathUtils.clamp((y - 1.9) / 3.7, 0, 1));
+      else tmpC.copy(cMid).lerp(cHigh, THREE.MathUtils.clamp((y - 5.6) / 5.5, 0, 1));
+      // 轻微色噪，避免塑料感
+      var n = (hash2(Math.round(x * 3), Math.round(z * 3)) - 0.5) * 0.06;
+      colors[i * 3] = THREE.MathUtils.clamp(tmpC.r + n, 0, 1);
+      colors[i * 3 + 1] = THREE.MathUtils.clamp(tmpC.g + n, 0, 1);
+      colors[i * 3 + 2] = THREE.MathUtils.clamp(tmpC.b + n, 0, 1);
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.computeVertexNormals();
+    var landMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0.05, flatShading: false });
+    var land = new THREE.Mesh(geo, landMat);
+    scene.add(land);
+
+    /* ---- 海面（自定义 shader 波纹） ---- */
+    var oceanGeo = new THREE.PlaneGeometry(CFG.worldX * 2.4, CFG.worldZ * 2.4, 220, 160);
+    oceanGeo.rotateX(-Math.PI / 2);
+    // 近岸渐变：逐顶点记录离岸距离因子（0 = 岸边，1 = 远海）
+    (function () {
+      var op = oceanGeo.attributes.position;
+      var shoreAttr = new Float32Array(op.count);
+      for (var si = 0; si < op.count; si++) {
+        var sx = op.getX(si), sz = op.getZ(si);
+        shoreAttr[si] = Math.max(0, Math.min(1, (sz - coastZ(sx)) / 15));
+      }
+      oceanGeo.setAttribute('aShore', new THREE.BufferAttribute(shoreAttr, 1));
+    })();
+    var oceanMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uTime: { value: 0 },
+        uDeep: { value: new THREE.Color(0x07395e) },
+        uShallow: { value: new THREE.Color(0x1590c4) },
+        uGlow: { value: new THREE.Color(0x33e1ff) }
+      },
+      vertexShader: [
+        'attribute float aShore;',
+        'varying vec2 vP;',
+        'varying float vW;',
+        'varying float vShore;',
+        'uniform float uTime;',
+        'void main(){',
+        '  vec3 p = position;',
+        '  float w = sin(p.x*0.55 + uTime*1.15)*0.20',
+        '          + sin(p.z*0.85 - uTime*0.92)*0.15',
+        '          + sin((p.x+p.z)*0.32 + uTime*0.55)*0.13;',
+        '  p.y += w;',
+        '  vW = w;',
+        '  vShore = aShore;',
+        '  vP = vec2(p.x, p.z);',
+        '  gl_Position = projectionMatrix * modelViewMatrix * vec4(p,1.0);',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'varying vec2 vP;',
+        'varying float vW;',
+        'varying float vShore;',
+        'uniform vec3 uDeep;',
+        'uniform vec3 uShallow;',
+        'uniform vec3 uGlow;',
+        'uniform float uTime;',
+        'void main(){',
+        '  float band = sin(vP.x*0.5 + uTime*0.4) * 0.5 + 0.5;',
+        '  float coastT = 1.0 - smoothstep(0.0, 0.62, vShore);',
+        '  vec3 col = mix(uDeep, uShallow, band*0.32 + coastT*0.78);',
+        '  col += uGlow * coastT * coastT * 0.40;',
+        '  float crest = smoothstep(0.16, 0.46, vW);',
+        '  col = mix(col, uGlow, crest*0.38);',
+        '  float grid = step(0.965, fract(vP.x*1.1)) + step(0.965, fract(vP.y*1.1));',
+        '  col += uGlow * clamp(grid,0.0,1.0) * 0.10;',
+        '  float a = 0.82 + crest*0.12;',
+        '  gl_FragColor = vec4(col, a);',
+        '}'
+      ].join('\n')
+    });
+    var ocean = new THREE.Mesh(oceanGeo, oceanMat);
+    ocean.position.y = 0;
+    scene.add(ocean);
+
+    /* ---- 海面数字光点 ---- */
+    var dotCount = 2600;
+    var dotPos = new Float32Array(dotCount * 3);
+    for (var d = 0; d < dotCount; d++) {
+      var dx = (Math.random() - 0.5) * CFG.worldX * 2.2;
+      var dz = (Math.random() - 0.5) * CFG.worldZ * 2.2;
+      if (terrainHeight(dx, dz) > -0.3) { d--; continue; }
+      dotPos[d * 3] = dx;
+      dotPos[d * 3 + 1] = 0.12 + Math.random() * 0.25;
+      dotPos[d * 3 + 2] = dz;
+    }
+    var dotGeo = new THREE.BufferGeometry();
+    dotGeo.setAttribute('position', new THREE.BufferAttribute(dotPos, 3));
+    var dotMat = new THREE.PointsMaterial({
+      color: 0x7fe9ff, size: 0.13, transparent: true, opacity: 0.72,
+      blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+    });
+    var dots = new THREE.Points(dotGeo, dotMat);
+    scene.add(dots);
+
+    /* ---- 光晕贴图 ---- */
+    function glowTexture() {
+      var cv = document.createElement('canvas');
+      cv.width = cv.height = 128;
+      var ctx = cv.getContext('2d');
+      var g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      g.addColorStop(0, 'rgba(255,255,255,1)');
+      g.addColorStop(0.25, 'rgba(255,255,255,.72)');
+      g.addColorStop(0.55, 'rgba(255,255,255,.22)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 128, 128);
+      var tex = new THREE.CanvasTexture(cv);
+      return tex;
+    }
+    var GLOW_TEX = glowTexture();
+
+    function makeGlow(color, size, pos) {
+      var mat = new THREE.SpriteMaterial({
+        map: GLOW_TEX, color: color, transparent: true, opacity: 0.9,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      });
+      var sp = new THREE.Sprite(mat);
+      sp.scale.set(size, size, 1);
+      if (pos) sp.position.copy(pos);
+      return sp;
+    }
+
+    var markerGroup = new THREE.Group();
+    scene.add(markerGroup);
+    var ringAnims = [];
+    var markers = [];
+
+    /* ---- 浮标点位 ---- */
+    BUOYS.forEach(function (b) {
+      var col = levelColor(b.level);
+      var g = new THREE.Group();
+      g.position.set(b.x, 0, b.z);
+
+      // 水面光晕
+      var sprite = makeGlow(col, 2.6, new THREE.Vector3(0, 0.35, 0));
+      sprite.material.opacity = 0.85;
+      g.add(sprite);
+
+      // 扩散环
+      var ringGeo = new THREE.RingGeometry(0.72, 0.9, 48);
+      var ringMat = new THREE.MeshBasicMaterial({
+        color: col, transparent: true, opacity: 0.85, side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      });
+      var ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.18;
+      g.add(ring);
+      ringAnims.push({ mesh: ring, phase: Math.random() * Math.PI * 2, base: 0.85, speed: 1.1 + Math.random() * 0.5 });
+
+      // 立杆
+      var pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.07, 0.07, 1.5, 8),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9 })
+      );
+      pole.position.y = 0.75;
+      g.add(pole);
+
+      // 顶部球
+      var ball = new THREE.Mesh(
+        new THREE.SphereGeometry(0.22, 14, 14),
+        new THREE.MeshBasicMaterial({ color: col })
+      );
+      ball.position.y = 1.6;
+      g.add(ball);
+
+      // 光柱
+      var beamMat = new THREE.MeshBasicMaterial({
+        color: col, transparent: true, opacity: 0.13,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+      });
+      var beam = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.42, 5.5, 12, 1, true), beamMat);
+      beam.position.y = 2.75;
+      g.add(beam);
+
+      g.userData = { buoy: b, kind: 'buoy', ring: ring, sprite: sprite, ball: ball, beam: beam };
+      markerGroup.add(g);
+      markers.push(g);
+      b.group3d = g;
+    });
+
+    /* ---- 网箱区域 ---- */
+    CAGES.forEach(function (c) {
+      var g = new THREE.Group();
+      g.position.set(c.x, 0, c.z);
+      var col = c.alarm ? 0xff4d6d : 0xffd166;
+
+      // 围栏光框
+      var w = 4.2, h = 3.0;
+      var pts = [
+        new THREE.Vector3(-w / 2, 0.2, -h / 2), new THREE.Vector3(w / 2, 0.2, -h / 2),
+        new THREE.Vector3(w / 2, 0.2, h / 2), new THREE.Vector3(-w / 2, 0.2, h / 2),
+        new THREE.Vector3(-w / 2, 0.2, -h / 2)
+      ];
+      var frameGeo = new THREE.BufferGeometry().setFromPoints(pts);
+      var frame = new THREE.Line(frameGeo, new THREE.LineBasicMaterial({
+        color: col, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending
+      }));
+      g.add(frame);
+
+      // 网箱网格（浮筒阵列）
+      var cageMat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9 });
+      for (var r = 0; r < 3; r++) {
+        for (var cc = 0; cc < 4; cc++) {
+          var cage = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.075, 8, 18), cageMat);
+          cage.rotation.x = -Math.PI / 2;
+          cage.position.set(-1.5 + cc * 1.0, 0.22, -0.9 + r * 0.9);
+          g.add(cage);
+        }
+      }
+      var glow = makeGlow(col, 5.4, new THREE.Vector3(0, 0.4, 0));
+      glow.material.opacity = 0.28;
+      g.add(glow);
+
+      g.userData = { kind: 'cage', cage: c, glow: glow, frame: frame };
+      markerGroup.add(g);
+      c.group3d = g;
+    });
+
+    /* ---- 红树林区域 ---- */
+    MANGROVES.forEach(function (m) {
+      var g = new THREE.Group();
+      g.position.set(m.x, 0, m.z);
+      var col = 0x29e7a0;
+      var patch = new THREE.Mesh(
+        new THREE.CircleGeometry(m.r, 40),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.40, depthWrite: false })
+      );
+      patch.rotation.x = -Math.PI / 2;
+      patch.position.y = terrainHeight(m.x, m.z) + 0.14;
+      g.add(patch);
+      var edge = new THREE.Mesh(
+        new THREE.RingGeometry(m.r * 0.92, m.r, 48),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      edge.rotation.x = -Math.PI / 2;
+      edge.position.y = patch.position.y + 0.01;
+      g.add(edge);
+      var glow = makeGlow(col, m.r * 2.0, new THREE.Vector3(0, patch.position.y + 0.3, 0));
+      glow.material.opacity = 0.30;
+      g.add(glow);
+      g.userData = { kind: 'mangrove', mg: m, patch: patch, edge: edge };
+      markerGroup.add(g);
+    });
+
+    /* ---- 通信链路（弧线） ---- */
+    var GATEWAY = new THREE.Vector3(-12, 0, seaZ(-12, 2.2));
+    var gateGlow = makeGlow(0x7fe9ff, 6.0, new THREE.Vector3(GATEWAY.x, 0.6, GATEWAY.z));
+    gateGlow.material.opacity = 0.35;
+    scene.add(gateGlow);
+
+    BUOYS.forEach(function (b) {
+      var start = GATEWAY.clone(); start.y = 0.6;
+      var end = new THREE.Vector3(b.x, 1.6, b.z);
+      var mid = start.clone().lerp(end, 0.5);
+      var dist = start.distanceTo(end);
+      mid.y = 1.6 + Math.min(6, dist * 0.22);
+      var curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+      var pts2 = curve.getPoints(50);
+      var lgeo = new THREE.BufferGeometry().setFromPoints(pts2);
+      var lmat = new THREE.LineBasicMaterial({
+        color: 0x2fb6e0, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending
+      });
+      scene.add(new THREE.Line(lgeo, lmat));
+    });
+
+    /* ---- 巡航扫描环 ---- */
+    var scanRing = new THREE.Mesh(
+      new THREE.RingGeometry(3.0, 3.25, 96),
+      new THREE.MeshBasicMaterial({ color: 0x33e1ff, transparent: true, opacity: 0.35, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    scanRing.rotation.x = -Math.PI / 2;
+    scanRing.position.set(-2, 0.06, 6);
+    scene.add(scanRing);
+
+    /* ---- 相机轨道控制（自实现，无外部依赖） ---- */
+    var orbit = {
+      theta: -0.32,
+      phi: 0.93,
+      radius: 50,
+      target: camTarget.clone(),
+      dragging: false,
+      lastX: 0, lastY: 0,
+      autoSpeed: 0.035,
+      userHold: 0,
+      flyTo: null
+    };
+
+    function applyOrbit() {
+      var r = orbit.radius;
+      camera.position.set(
+        orbit.target.x + r * Math.sin(orbit.phi) * Math.sin(orbit.theta),
+        orbit.target.y + r * Math.cos(orbit.phi),
+        orbit.target.z + r * Math.sin(orbit.phi) * Math.cos(orbit.theta)
+      );
+      camera.lookAt(orbit.target);
+    }
+
+    host.addEventListener('pointerdown', function (e) {
+      orbit.dragging = true; orbit.lastX = e.clientX; orbit.lastY = e.clientY;
+      host.classList.add('dragging');
+      orbit.userHold = 6;
+    });
+    window.addEventListener('pointermove', function (e) {
+      if (!orbit.dragging) return;
+      var dx = e.clientX - orbit.lastX, dy = e.clientY - orbit.lastY;
+      orbit.lastX = e.clientX; orbit.lastY = e.clientY;
+      orbit.theta -= dx * 0.005;
+      orbit.phi = THREE.MathUtils.clamp(orbit.phi - dy * 0.004, 0.32, 1.35);
+      orbit.userHold = 6;
+      applyOrbit();
+    });
+    window.addEventListener('pointerup', function () {
+      if (!orbit.dragging) return;
+      orbit.dragging = false;
+      host.classList.remove('dragging');
+    });
+    host.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      orbit.radius = THREE.MathUtils.clamp(orbit.radius + e.deltaY * 0.03, 22, 78);
+      orbit.userHold = 6;
+      applyOrbit();
+    }, { passive: false });
+
+    applyOrbit();
+
+    /* ---- 悬浮拾取 ---- */
+    var raycaster = new THREE.Raycaster();
+    var pointer = new THREE.Vector2(-10, -10);
+    var tooltip = document.getElementById('tooltip3d');
+    var hovered = null;
+
+    canvas.addEventListener('pointermove', function (e) {
+      var rect = canvas.getBoundingClientRect();
+      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    });
+    canvas.addEventListener('pointerleave', function () {
+      pointer.set(-10, -10);
+      tooltip.style.display = 'none';
+      hovered = null;
+    });
+
+    function pickMarkers() {
+      raycaster.setFromCamera(pointer, camera);
+      var hitObjects = [];
+      markers.forEach(function (g) { if (g.userData.kind === 'buoy') hitObjects.push(g.userData.ball); });
+      var hits = raycaster.intersectObjects(hitObjects, false);
+      return hits.length ? hits[0] : null;
+    }
+
+    /* ---- 地名标签 ---- */
+    var labelLayer = document.getElementById('labelLayer');
+    var labels = LANDMARKS.map(function (l) {
+      var el = document.createElement('div');
+      el.className = 'map-label' + (l.minor ? ' minor' : '');
+      el.textContent = l.t;
+      labelLayer.appendChild(el);
+      return { el: el, pos: new THREE.Vector3(l.x, Math.max(0.6, terrainHeight(l.x, l.z) + 0.8), l.z) };
+    });
+
+    var v3 = new THREE.Vector3();
+    function updateLabels() {
+      var w = host.clientWidth, h = host.clientHeight;
+      labels.forEach(function (l) {
+        v3.copy(l.pos).project(camera);
+        if (v3.z > 1) { l.el.style.display = 'none'; return; }
+        l.el.style.display = 'block';
+        l.el.style.left = ((v3.x * 0.5 + 0.5) * w) + 'px';
+        l.el.style.top = ((-v3.y * 0.5 + 0.5) * h) + 'px';
+      });
+    }
+
+    three = {
+      ready: true, renderer: renderer, scene: scene, camera: camera,
+      oceanMat: oceanMat, markerGroup: markerGroup, dots: dots,
+      orbit: orbit, applyOrbit: applyOrbit, scanRing: scanRing,
+      hover: { tooltip: tooltip, getHovered: function () { return hovered; }, setHovered: function (v) { hovered = v; } },
+      labels: labels, updateLabels: updateLabels, pickMarkers: pickMarkers, canvas: canvas,
+      clock: new THREE.Clock()
+    };
+  }
+
+  /* 相机飞行定位 */
+  function flyTo(x, z, radius) {
+    if (!three.ready) return;
+    three.orbit.flyTo = { target: new THREE.Vector3(x, 0, z), radius: radius || 30, t: 0 };
+    three.orbit.userHold = 8;
+  }
+
+  function updateThree() {
+    if (!three.ready) return;
+    var t = three.clock.getElapsedTime();
+    three.oceanMat.uniforms.uTime.value = t;
+
+    // 扫描环
+    var sr = three.scanRing;
+    var s = (t * 0.35) % 1;
+    sr.scale.setScalar(0.6 + s * 3.4);
+    sr.material.opacity = 0.4 * (1 - s);
+
+    // 浮标脉冲
+    BUOYS.forEach(function (b, idx) {
+      var g = b.group3d;
+      if (!g) return;
+      var ph = t * (1.2 + idx * 0.13) + idx;
+      var pulse = 0.5 + 0.5 * Math.sin(ph);
+      g.userData.ring.scale.setScalar(1 + pulse * 0.55);
+      g.userData.ring.material.opacity = 0.85 * (1 - pulse * 0.65);
+      g.userData.sprite.material.opacity = 0.55 + 0.35 * pulse;
+      g.userData.ball.scale.setScalar(0.9 + 0.18 * pulse);
+      g.position.y = Math.sin(t * 0.9 + idx) * 0.05;
+    });
+
+    // 网箱告警闪烁
+    CAGES.forEach(function (c) {
+      if (!c.group3d) return;
+      var g = c.group3d;
+      var target = c.alarm ? (0.55 + 0.45 * Math.abs(Math.sin(t * 2.4))) : 0.28;
+      g.userData.glow.material.opacity = target;
+      g.scale.setScalar(1 + (c.alarm ? 0.03 * Math.sin(t * 3) : 0));
+    });
+
+    // 红树林呼吸
+    MANGROVES.forEach(function (m, i) {
+      if (!m.group3d) return;
+      var p = 0.5 + 0.5 * Math.sin(t * 0.9 + i);
+      m.group3d.userData.patch.material.opacity = 0.32 + 0.16 * p;
+      m.group3d.userData.edge.material.opacity = 0.6 + 0.35 * p;
+    });
+
+    // 数字光点呼吸
+    three.dots.material.opacity = 0.55 + 0.22 * Math.sin(t * 0.7);
+
+    // 自动环绕
+    if (three.orbit.flyTo) {
+      var f = three.orbit.flyTo;
+      f.t = Math.min(1, f.t + 0.012);
+      var e = 1 - Math.pow(1 - f.t, 3);
+      three.orbit.target.lerp(f.target, e * 0.14);
+      three.orbit.radius += (f.radius - three.orbit.radius) * e * 0.12;
+      if (f.t >= 1 && three.orbit.target.distanceTo(f.target) < 0.35) three.orbit.flyTo = null;
+    } else {
+      if (three.orbit.userHold > 0) three.orbit.userHold -= 0.016;
+      else three.orbit.theta += 0.00055;
+    }
+    three.applyOrbit();
+
+    // 悬浮提示
+    var hit = three.pickMarkers();
+    if (hit) {
+      var g2 = hit.object.parent;
+      var b2 = g2.userData.buoy;
+      var tt = three.hover.tooltip;
+      tt.style.display = 'block';
+      tt.querySelector('.t-name').textContent = b2.name + ' · ' + b2.id;
+      tt.querySelector('.t-temp').textContent = b2.temp.toFixed(1) + ' ℃';
+      tt.querySelector('.t-chl').textContent = b2.chl.toFixed(1) + ' μg/L';
+      tt.querySelector('.t-do').textContent = b2.dox.toFixed(1) + ' mg/L';
+      tt.querySelector('.t-ph').textContent = b2.ph.toFixed(1);
+      tt.querySelector('.t-st').textContent = b2.level >= 3 ? '高风险' : (b2.level === 2 ? '关注' : '正常');
+
+      var w2 = three.canvas.clientWidth, h2 = three.canvas.clientHeight;
+      var pv = new THREE.Vector3(b2.x, 1.9, b2.z).project(three.camera);
+      tt.style.left = ((pv.x * 0.5 + 0.5) * w2) + 'px';
+      tt.style.top = ((-pv.y * 0.5 + 0.5) * h2) + 'px';
+      three.canvas.style.cursor = 'pointer';
+    } else {
+      three.hover.tooltip.style.display = 'none';
+      three.canvas.style.cursor = three.orbit.dragging ? 'grabbing' : 'grab';
+    }
+
+    three.updateLabels();
+    three.renderer.render(three.scene, three.camera);
+  }
+
+  /* =========================================================
+     4. 告警与 UI
+     ========================================================= */
+  var ALERT_POOL = [
+    { lv: 3, t: '赤潮风险预警', p: '黄岐湾中部 · LJ-P01-BUOY-02', text: '叶绿素 a 连续 3 次上升，赤潮风险达 Ⅲ 级', tag: '模型告警' },
+    { lv: 3, t: '溶解氧骤降', p: '筱埕养殖区 · LJ-P03-BUOY-01', text: '溶解氧 2.4 mg/L，低于危险阈值 3.0 mg/L', tag: '阈值告警' },
+    { lv: 2, t: '水温快速变化', p: '马鼻红树林 · LJ-P04-BUOY-01', text: '1 h 内水温下降 2.4 ℃，超趋势阈值', tag: '趋势告警' },
+    { lv: 2, t: '浊度异常', p: '敖江口 · LJ-P05-BUOY-01', text: '浊度升至 86 NTU，疑似陆源输入影响', tag: '阈值告警' },
+    { lv: 1, t: '设备信号弱', p: '定海湾外缘 · LJ-P02-BUOY-02', text: 'LoRa 信号强度 -112 dBm，建议巡检', tag: '设备告警' },
+    { lv: 1, t: '叶绿素 a 上升', p: '苔菉养殖区 · LJ-P03-BUOY-02', text: '叶绿素 a 由 2.8 升至 3.6 μg/L', tag: '趋势告警' },
+    { lv: 2, t: '网箱区风险', p: '定海湾网箱区 A', text: '邻近点位溶解氧持续走低，建议关注投喂', tag: '网箱告警' }
+  ];
+
+  var alertListEl = document.getElementById('alertList');
+  function nowStr() {
+    var d = new Date();
+    return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
+  }
+  function tagClass(lv) { return lv >= 3 ? 'tag-red' : (lv === 2 ? 'tag-orange' : 'tag-yellow'); }
+
+  function pushAlert(a, silent) {
+    var el = document.createElement('div');
+    el.className = 'alert-item lv' + a.lv;
+    el.innerHTML =
+      '<span class="a-time">' + nowStr() + '</span>' +
+      '<span class="a-text">' + a.p + ' · ' + a.text + '</span>' +
+      '<span class="a-tag ' + tagClass(a.lv) + '">' + a.tag + '</span>';
+    alertListEl.insertBefore(el, alertListEl.firstChild);
+    while (alertListEl.children.length > 7) alertListEl.removeChild(alertListEl.lastChild);
+
+    state.alertToday += 1;
+    document.getElementById('sbAlert').innerHTML = state.alertToday + '<small> 条</small>';
+
+    if (!silent) showPopup(a);
+  }
+
+  var popup = document.getElementById('alertPopup');
+  var popupTimer = null;
+  function showPopup(a) {
+    popup.className = 'alert-popup' + (a.lv === 2 ? ' level-2' : (a.lv === 1 ? ' level-1' : ''));
+    document.getElementById('apTitle').textContent = a.t;
+    document.getElementById('apPoint').textContent = a.p;
+    if (a.lv === 3 && a.tag === '模型告警') {
+      document.getElementById('apLevel').textContent = 'Ⅲ 级 · 中高风险（概率 ' + state.riskProb.toFixed(2) + '）';
+      document.getElementById('apFactor').textContent = '叶绿素 a 持续升高 + 水温上升';
+    } else {
+      document.getElementById('apLevel').textContent = (a.lv === 3 ? 'Ⅲ 级 · 高风险' : (a.lv === 2 ? 'Ⅱ 级 · 需关注' : 'Ⅰ 级 · 提示'));
+      document.getElementById('apFactor').textContent = a.text;
+    }
+    popup.classList.add('show');
+    if (popupTimer) clearTimeout(popupTimer);
+    popupTimer = setTimeout(function () { popup.classList.remove('show'); }, 9000);
+  }
+  document.getElementById('apClose').onclick = function () { popup.classList.remove('show'); };
+  document.getElementById('apIgnore').onclick = function () { popup.classList.remove('show'); };
+  document.getElementById('apHandle').onclick = function () {
+    popup.classList.remove('show');
+    flyTo(-11, seaZ(-11, 8), 26);
+    document.getElementById('aiBanner').innerHTML = '处置任务已派发：<em>黄岐湾中部应急监测</em> · 渔技员移动端已接收';
+  };
+
+  function seedAlerts() {
+    var d = new Date();
+    var seed = [
+      { lv: 2, p: '敖江口 · LJ-P05-BUOY-01', text: '浊度升至 86 NTU，疑似陆源输入影响', tag: '阈值告警', ago: 260 },
+      { lv: 1, p: '定海湾外缘 · LJ-P02-BUOY-02', text: 'LoRa 信号强度 -112 dBm，建议巡检', tag: '设备告警', ago: 420 },
+      { lv: 2, p: '马鼻红树林 · LJ-P04-BUOY-01', text: '1 h 内水温下降 2.4 ℃，超趋势阈值', tag: '趋势告警', ago: 640 },
+      { lv: 1, p: '苔菉养殖区 · LJ-P03-BUOY-02', text: '叶绿素 a 由 2.8 升至 3.6 μg/L', tag: '趋势告警', ago: 900 },
+      { lv: 3, p: '黄岐湾中部 · LJ-P01-BUOY-02', text: '叶绿素 a 连续 3 次上升，赤潮风险达 Ⅲ 级', tag: '模型告警', ago: 1260 }
+    ];
+    seed.forEach(function (s) {
+      var el = document.createElement('div');
+      el.className = 'alert-item lv' + s.lv;
+      var tt = new Date(d.getTime() - s.ago * 1000);
+      var ts = ('0' + tt.getHours()).slice(-2) + ':' + ('0' + tt.getMinutes()).slice(-2) + ':' + ('0' + tt.getSeconds()).slice(-2);
+      el.innerHTML =
+        '<span class="a-time">' + ts + '</span>' +
+        '<span class="a-text">' + s.p + ' · ' + s.text + '</span>' +
+        '<span class="a-tag ' + tagClass(s.lv) + '">' + s.tag + '</span>';
+      alertListEl.appendChild(el);
+    });
+  }
+
+  /* =========================================================
+     5. 实时数据模拟与刷新
+     ========================================================= */
+  function fmt(v, n) { return v.toFixed(n === undefined ? 1 : n); }
+
+  function tickMetrics() {
+    BUOYS.forEach(function (b) {
+      b.temp += (Math.random() - 0.48) * 0.09;
+      b.chl += (Math.random() - 0.42) * 0.09;
+      b.dox += (Math.random() - 0.52) * 0.08;
+      b.ph += (Math.random() - 0.5) * 0.012;
+      b.temp = Math.max(19.5, Math.min(24.5, b.temp));
+      b.chl = Math.max(1.8, Math.min(9.5, b.chl));
+      b.dox = Math.max(4.2, Math.min(8.6, b.dox));
+      b.ph = Math.max(7.6, Math.min(8.6, b.ph));
+    });
+
+    var main = BUOYS[1]; // 黄岐湾中部作为主展示点
+    document.getElementById('v-temp').textContent = fmt(main.temp);
+    document.getElementById('v-chl').textContent = fmt(main.chl);
+    document.getElementById('v-do').textContent = fmt(main.dox);
+    document.getElementById('v-ph').textContent = fmt(main.ph);
+
+    document.getElementById('t-temp').textContent = '↑ ' + fmt(Math.random() * 0.6 + 0.1);
+    document.getElementById('t-temp').className = 'trend up';
+    document.getElementById('t-chl').textContent = '↑ ' + fmt(Math.random() * 0.7 + 0.2);
+    document.getElementById('t-chl').className = 'trend up';
+    document.getElementById('t-do').textContent = '↓ ' + fmt(Math.random() * 0.4 + 0.05);
+    document.getElementById('t-do').className = 'trend down';
+    document.getElementById('t-ph').textContent = '→ ' + fmt(Math.random() * 0.04, 2);
+    document.getElementById('t-ph').className = 'trend flat';
+
+    updateGauge(main.temp);
+
+    state.total += Math.round(Math.random() * 6 + 4);
+    document.getElementById('sbTotal').innerHTML = state.total + '<small> 条</small>';
+    state.online = 98 + Math.random() * 1.8;
+    document.getElementById('sbOnline').innerHTML = fmt(state.online) + '<small>%</small>';
+
+    // 风险概率缓慢演化
+    state.riskProb += (Math.random() - 0.5) * 0.02;
+    state.riskProb = Math.max(0.55, Math.min(0.93, state.riskProb));
+    updateRisk(state.riskProb);
+    var lvText = state.riskProb >= 0.75 ? 'Ⅲ 级 · 中高风险' : (state.riskProb >= 0.5 ? 'Ⅱ 级 · 需关注' : 'Ⅰ 级 · 低风险');
+    document.getElementById('riskLevelText').textContent = lvText;
+
+    // 红树林健康度小幅波动
+    state.mgScore = Math.max(66, Math.min(80, state.mgScore + (Math.random() - 0.5) * 0.6));
+    document.getElementById('mgScore').textContent = Math.round(state.mgScore);
+
+    // 更新三维点位颜色随风险变化
+    if (three.ready) {
+      BUOYS.forEach(function (b) {
+        var col = levelColor(b.level);
+        b.group3d.userData.ring.material.color.setHex(col);
+        b.group3d.userData.ball.material.color.setHex(col);
+        b.group3d.userData.sprite.material.color.setHex(col);
+        b.group3d.userData.beam.material.color.setHex(col);
+      });
+    }
+  }
+
+  var TICKER_MSGS = [
+    '系统运行正常 · 8 个浮标点位数据回传中 · 黄岐半岛近岸叶绿素 a 持续上升，已自动切换至 1 min 加密采样',
+    '红树林遥感分割任务完成：马鼻红树林面积较上期增加 0.8%，健康度提升 2.4%',
+    '边缘网关断网续传验证通过：连续离线 30 min，恢复后补传数据 100% 完整',
+    '模型 red_tide_v2.1 已上线：未来 72 h 赤潮风险预测召回率 91.3%',
+    '提示：未来 48 h 受低压槽影响，定海湾溶解氧可能走低，请关注网箱区'
+  ];
+  var tickerIdx = 0;
+  function rotateTicker() {
+    tickerIdx = (tickerIdx + 1) % TICKER_MSGS.length;
+    var el = document.getElementById('ticker');
+    el.innerHTML = TICKER_MSGS[tickerIdx];
+    el.style.opacity = '0';
+    setTimeout(function () { el.style.transition = 'opacity .6s'; el.style.opacity = '1'; }, 60);
+  }
+
+  function clock() {
+    var d = new Date();
+    var hh = ('0' + d.getHours()).slice(-2);
+    var mm = ('0' + d.getMinutes()).slice(-2);
+    var ss = ('0' + d.getSeconds()).slice(-2);
+    document.getElementById('topTime').textContent = hh + ':' + mm + ':' + ss;
+    var days = ['日', '一', '二', '三', '四', '五', '六'];
+    document.getElementById('topDate').textContent =
+      d.getFullYear() + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + ('0' + d.getDate()).slice(-2) + ' 周' + days[d.getDay()];
+  }
+
+  /* 定时事件：告警触发与场景演出 */
+  function scheduleEvents() {
+    // 首次：8 秒后触发赤潮预警演示
+    setTimeout(function () {
+      var a = ALERT_POOL[0];
+      showPopup(a);
+      pushAlert(a, true);
+      flyTo(-11, seaZ(-11, 8), 28);
+      document.getElementById('aiBanner').innerHTML = 'AI 检测：<em>黄岐湾中部赤潮风险升高</em>，建议提前布设应急监测';
+      CAGES[0].alarm = true;
+    }, 8000);
+
+    // 之后周期性产生各类告警
+    setInterval(function () {
+      var a = ALERT_POOL[Math.floor(Math.random() * ALERT_POOL.length)];
+      pushAlert(a, false);
+      if (a.lv >= 2) {
+        // 随机点亮一个网箱区域
+        var c = CAGES[Math.floor(Math.random() * CAGES.length)];
+        c.alarm = true;
+        setTimeout(function () { c.alarm = false; }, 12000);
+      }
+    }, 18000);
+  }
+
+  /* =========================================================
+     6. 启动
+     ========================================================= */
+  function boot() {
+    initCharts();
+    initThree();
+    seedAlerts();
+    clock();
+    setInterval(clock, 1000);
+    setInterval(tickMetrics, 3000);
+    setInterval(rotateTicker, 9000);
+    tickMetrics();
+
+    // 导航交互
+    var tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        var txt = tab.textContent;
+        var banner = document.getElementById('aiBanner');
+        if (txt.indexOf('赤潮') >= 0) {
+          banner.innerHTML = '赤潮预警视图：<em>黄岐湾中部 Ⅲ 级风险</em> · 未来 72 h 概率峰值 82%';
+          flyTo(-11, seaZ(-11, 8), 24);
+        } else if (txt.indexOf('红树林') >= 0) {
+          banner.innerHTML = '红树林监测视图：<em>马鼻湿地健康度 72 分</em> · 面积较上期 +0.8%';
+          flyTo(-30, coastZ(-30) - 1, 22);
+        } else if (txt.indexOf('设备管理') >= 0) {
+          banner.innerHTML = '设备管理视图：<em>8 个浮标 / 8 路视频 / 8 台网关</em> 全部在线';
+          flyTo(-12, seaZ(-12, 2.2), 34);
+        } else if (txt.indexOf('连江海洋生态监测') >= 0) {
+          banner.innerHTML = '全域监测视图：<em>5 个监测区 · 8 个浮标点位</em> 数据实时回传';
+          flyTo(-2, 4, 50);
+        } else {
+          banner.innerHTML = 'AI 检测：<em>黄岐湾中部赤潮风险升高</em>，建议提前布设应急监测';
+          flyTo(-2, 4, 50);
+        }
+      });
+    });
+
+    scheduleEvents();
+
+    // 渲染循环
+    (function loop() {
+      requestAnimationFrame(loop);
+      updateThree();
+    })();
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(boot, 30);
+  } else {
+    document.addEventListener('DOMContentLoaded', boot);
+  }
+})();
+</script>
+</body>
+</html>

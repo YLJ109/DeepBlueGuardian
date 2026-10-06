@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理后台 · 深蓝智护 连江海洋生态智能监测平台</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  [v-cloak] { visibility: hidden; }
+  .stat-card {
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line-soft);
+    background: linear-gradient(160deg, rgba(51, 225, 255, 0.09), rgba(4, 20, 36, 0.55));
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .stat-card .v { font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: #fff; line-height: 1.1; }
+  .stat-card .k { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .stat-card .sub { font-size: 11px; color: var(--text-mute); margin-top: 3px; }
+  .chart-box { width: 100%; height: 300px; }
+  .chart-box.sm { height: 220px; }
+  .chart-box.xs { height: 170px; }
+  .modal-mask {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(2, 10, 21, 0.7);
+    backdrop-filter: blur(4px);
+    display: grid; place-items: center;
+    padding: 20px;
+  }
+  .modal {
+    width: 100%; max-width: 460px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: rgba(9, 36, 64, 0.97);
+    box-shadow: var(--shadow-panel);
+    overflow: hidden;
+  }
+  .modal-head { display: flex; align-items: center; gap: 9px; padding: 13px 16px; border-bottom: 1px solid var(--line-soft); font-size: 14px; font-weight: 700; }
+  .modal-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .modal-foot { display: flex; gap: 9px; padding: 0 16px 16px; }
+  .device-row { cursor: pointer; }
+  .device-row.active { background: rgba(51, 225, 255, 0.1); }
+  .overlay-img {
+    width: 100%; aspect-ratio: 1 / 1; object-fit: contain;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line-soft);
+    background: #02101c;
+    image-rendering: pixelated;
+  }
+  .kv { display: flex; align-items: center; gap: 10px; font-size: 12.5px; padding: 5px 0; border-bottom: 1px dashed rgba(51,225,255,0.08); }
+  .kv:last-child { border-bottom: none; }
+  .kv .k { color: var(--text-dim); min-width: 96px; }
+  .kv .v { font-family: var(--font-mono); color: #fff; margin-left: auto; text-align: right; }
+  .pill-list { display: flex; flex-wrap: wrap; gap: 6px; }
+</style>
+</head>
+<body class="console-body">
+
+<!-- 登录 -->
+<div id="console" v-cloak>
+  <div v-if="!logged" class="login-shell">
+  <form class="login-card" @submit.prevent="doLogin">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div class="brand-mark" v-html="icon('waves', 22)"></div>
+      <div>
+        <div style="font-size:19px;font-weight:800;letter-spacing:1.6px;color:#fff;">深蓝智护</div>
+        <div style="font-size:11.5px;color:var(--text-dim);">连江海洋生态智能监测平台 · 管理后台</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="field">
+        <label for="loginUser">账号</label>
+        <input id="loginUser" class="input" v-model="loginForm.username" autocomplete="username" placeholder="请输入账号">
+      </div>
+      <div class="field">
+        <label for="loginPass">密码</label>
+        <input id="loginPass" class="input" type="password" v-model="loginForm.password" autocomplete="current-password" placeholder="请输入密码">
+      </div>
+      <div v-if="loginForm.error" class="notice crit">{{ loginForm.error }}</div>
+      <button class="btn primary" type="submit" :disabled="loginForm.busy" style="min-height:42px;">
+        <span v-html="icon('lock', 15)"></span>
+        <span>{{ loginForm.busy ? '登录中…' : '登录平台' }}</span>
+      </button>
+    </div>
+
+    <div class="hr" style="margin:18px 0 12px;"></div>
+    <div style="font-size:11.5px;color:var(--text-mute);line-height:1.8;">
+      演示账号：<span class="mono" style="color:var(--text-dim);">admin / deepblue@2026</span><br>
+      运维账号：<span class="mono" style="color:var(--text-dim);">operator / ocean@2026</span>
+    </div>
+  </form>
+</div>
+
+<!-- 控制台 -->
+  <div v-else class="console-shell">
+  <header class="console-top">
+    <!-- 左组导航：标题左侧四项 -->
+    <div class="top-side left">
+      <button v-for="v in navLeft" :key="v.key" type="button" class="top-nav" :title="v.label" :class="{ active: view === v.key }"
+              :aria-current="view === v.key ? 'page' : undefined" @click="switchView(v.key)">
+        <span v-html="icon(v.icon, 15)"></span><span class="tn-label">{{ v.label }}</span>
+      </button>
+    </div>
+
+    <!-- 标题：居中，点击进入可视化大屏 -->
+    <button type="button" class="top-title" title="点击进入可视化大屏" @click="openScreen">
+      <span class="brand-mark" v-html="icon('waves', 16)"></span>
+      <span class="tt-text">
+        <b>深蓝智护 · 连江海洋生态智能监测平台</b>
+        <i>监测平台管理后台<span v-if="user"> · {{ user.display_name }} · {{ roleLabel(user.role) }}</span></i>
+      </span>
+      <span class="tt-go" v-html="icon('map', 14)"></span>
+    </button>
+
+    <!-- 右组导航：标题右侧三项 + 工具按钮 -->
+    <div class="top-side right">
+      <button v-for="v in navRight" :key="v.key" type="button" class="top-nav" :title="v.label" :class="{ active: view === v.key }"
+              :aria-current="view === v.key ? 'page' : undefined" @click="switchView(v.key)">
+        <span v-html="icon(v.icon, 15)"></span><span class="tn-label">{{ v.label }}</span>
+      </button>
+      <span class="top-sep" aria-hidden="true"></span>
+      <button type="button" class="top-icon" title="刷新当前页面数据" aria-label="刷新当前页面数据" @click="switchView(view)">
+        <span v-html="icon('refresh', 16)"></span>
+      </button>
+      <button type="button" class="top-icon danger" title="退出登录" aria-label="退出登录" @click="logout">
+        <span v-html="icon('logout', 16)"></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="console-main">
+    <main class="console-content" :class="{ 'is-tabbed': view === 'accounts' }">
+
+      <!-- 运行概览 -->
+      <template v-if="view === 'overview'">
+        <div class="grid-4">
+          <div class="stat-card">
+            <div class="icon-box" v-html="icon('server', 16)"></div>
+            <div><div class="v">{{ fmt.int(summary.device_total) }}</div><div class="k">在网设备</div><div class="sub">在线率 {{ fmt.pct(summary.online_rate) }}</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon-box green" v-html="icon('anchor', 16)"></div>
+            <div><div class="v">{{ summary.buoy_online || 0 }}/{{ summary.buoy_total || 0 }}</div><div class="k">水质浮标在线</div><div class="sub">采样间隔 300 秒</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon-box purple" v-html="icon('database', 16)"></div>
+            <div><div class="v">{{ fmt.int(summary.readings_total) }}</div><div class="k">累计观测记录</div><div class="sub">聚合表 {{ fmt.int(summary.aggregates_total) }} 条</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon-box" :class="(summary.pending_alerts || 0) > 0 ? 'red' : 'green'" v-html="icon('bell', 16)"></div>
+            <div><div class="v">{{ summary.pending_alerts || 0 }}</div><div class="k">待处置告警</div><div class="sub">近 24 小时 {{ summary.critical_24h || 0 }} 条预警</div></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><span class="bdot"></span><span class="title">近 24 小时水质趋势</span><span class="rule"></span><span class="hint">小时均值</span></div>
+            <div class="panel-body"><div id="overviewTrend" class="chart-box"></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="bdot yellow"></span><span class="title">系统事件</span><span class="rule"></span><span class="hint">最近 24 条</span></div>
+            <div class="panel-body scroll" style="max-height:340px;">
+              <div v-for="e in events" :key="e.id" class="list-item">
+                <span :class="['tag', e.level === 'error' ? 'crit' : e.level === 'warning' ? 'warn' : 'info']">{{ e.category }}</span>
+                <span class="ellipsis" style="flex:1;">{{ e.message }}</span>
+                <span class="mono mute">{{ fmt.time(e.created_at, true) }}</span>
+              </div>
+              <div v-if="!events.length" class="empty">暂无事件</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2 stretch" style="--stretch-min: 300px;">
+          <div class="panel">
+            <div class="panel-head"><span class="bdot green"></span><span class="title">监测区域与点位</span><span class="rule"></span><span class="hint">{{ regions.length }} 个区域</span></div>
+            <div class="panel-body flush">
+              <div class="table-wrap">
+                <table class="data">
+                  <thead><tr><th>区域</th><th>类型</th><th>经度</th><th>纬度</th><th class="num">设备数</th><th class="num">观测记录</th></tr></thead>
+                  <tbody>
+                    <tr v-for="r in (overview ? overview.regions : [])" :key="r.code">
+                      <td>{{ r.name }}</td>
+                      <td><span class="tag mute">{{ { farm: '养殖区', mangrove: '红树林', estuary: '河口', open_sea: '开放海域', nursery: '育苗区' }[r.kind] || r.kind }}</span></td>
+                      <td class="num">{{ fmt.num(r.longitude, 4) }}</td>
+                      <td class="num">{{ fmt.num(r.latitude, 4) }}</td>
+                      <td class="num">{{ r.device_count }}</td>
+                      <td class="num">{{ fmt.int(r.reading_count) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="bdot"></span><span class="title">各浮标最新读数</span><span class="rule"></span><span class="hint">实时</span></div>
+            <div class="panel-body flush">
+              <div class="table-wrap">
+                <table class="data">
+                  <thead><tr><th>站位</th><th>时间</th><th class="num">水温</th><th class="num">溶解氧</th><th class="num">叶绿素a</th><th class="num">盐度</th><th>状态</th></tr></thead>
+                  <tbody>
+                    <tr v-for="d in (overview ? overview.latest : [])" :key="d.device_code">
+                      <td>{{ (d.site || d.device_name || '').replace('多参数水质浮标', '') }}</td>
+                      <td class="num">{{ fmt.time(d.ts) }}</td>
+                      <td class="num">{{ fmt.num(d.values.water_temp) }}</td>
+                      <td class="num">{{ fmt.num(d.values.dissolved_oxygen) }}</td>
+                      <td class="num" :style="{ color: metricStatus('chlorophyll_a', d.values.chlorophyll_a) === 'crit' ? '#ff4d6d' : metricStatus('chlorophyll_a', d.values.chlorophyll_a) === 'warn' ? '#ffd166' : '#29e7a0' }">{{ fmt.num(d.values.chlorophyll_a) }}</td>
+                      <td class="num">{{ fmt.num(d.values.salinity) }}</td>
+                      <td><span :class="['tag', d.status === 'online' ? 'ok' : 'crit']">{{ d.status === 'online' ? '在线' : '离线' }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 设备管理 -->
+      <template v-if="view === 'devices'">
+        <div class="panel stretch" style="--stretch-min: 380px;">
+          <div class="panel-head"><span class="bdot"></span><span class="title">设备台账</span><span class="rule"></span><span class="hint">共 {{ deviceTotal }} 台</span></div>
+          <div class="panel-body">
+            <div class="toolbar" style="margin-bottom:14px;">
+              <div class="field"><label for="qKeyword">关键字</label><input id="qKeyword" class="input" v-model="deviceQuery.keyword" placeholder="名称或设备编码" @keyup.enter="loadDevices"></div>
+              <div class="field"><label for="qType">设备类型</label>
+                <select id="qType" class="select" v-model="deviceQuery.type">
+                  <option value="">全部</option><option value="buoy">水质浮标</option><option value="camera">摄像头</option><option value="gateway">边缘网关</option>
+                </select>
+              </div>
+              <div class="field"><label for="qRegion">所属区域</label>
+                <select id="qRegion" class="select" v-model="deviceQuery.region_code">
+                  <option value="">全部</option>
+                  <option v-for="r in regions" :key="r.code" :value="r.code">{{ r.name }}</option>
+                </select>
+              </div>
+              <div class="field"><label for="qStatus">运行状态</label>
+                <select id="qStatus" class="select" v-model="deviceQuery.status">
+                  <option value="">全部</option><option value="online">在线</option><option value="offline">离线</option><option value="fault">故障</option>
+                </select>
+              </div>
+              <button class="btn primary" @click="loadDevices"><span v-html="icon('search', 14)"></span><span>查询</span></button>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data">
+                <thead>
+                  <tr><th>设备编码</th><th>名称</th><th>类型</th><th>所属区域</th><th>状态</th><th class="num">电量</th><th class="num">信号</th><th class="num">采样间隔</th><th>固件</th><th>最近上报</th><th>操作</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="d in devices" :key="d.device_code" class="device-row" :class="{ active: selectedDevice === d.device_code }" @click="openDevice(d.device_code)">
+                    <td class="mono">{{ d.device_code }}</td>
+                    <td>{{ d.name }}</td>
+                    <td><span class="tag mute">{{ { buoy: '水质浮标', camera: '摄像头', gateway: '边缘网关', weather: '气象站', uav: '无人机' }[d.type] || d.type }}</span></td>
+                    <td>{{ d.region_name || '--' }}</td>
+                    <td><span :class="['tag', d.status === 'online' ? 'ok' : d.status === 'offline' ? 'mute' : 'crit']">{{ { online: '在线', offline: '离线', fault: '故障' }[d.status] || d.status }}</span></td>
+                    <td class="num">{{ d.battery === null ? '--' : fmt.pct(d.battery) }}</td>
+                    <td class="num">{{ d.signal === null ? '--' : d.signal + ' dBm' }}</td>
+                    <td class="num">{{ d.sample_interval }} s</td>
+                    <td class="mono">{{ d.firmware || '--' }}</td>
+                    <td class="num">{{ fmt.dateTime(d.last_seen) }}</td>
+                    <td @click.stop>
+                      <div style="display:flex;gap:5px;">
+                        <button class="btn sm ghost" title="设置采样间隔" @click="changeInterval(d)" v-html="icon('timer', 13)"></button>
+                        <button class="btn sm ghost" title="下发校准" @click="runDeviceCommand(d, 'calibrate')" v-html="icon('wrench', 13)"></button>
+                        <button class="btn sm ghost" title="对时" @click="runDeviceCommand(d, 'sync_time')" v-html="icon('clock', 13)"></button>
+                        <button class="btn sm ghost" title="重启设备" @click="runDeviceCommand(d, 'reboot')" v-html="icon('refresh', 13)"></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="!devices.length"><td colspan="11" class="center mute" style="padding:28px;">没有匹配的设备</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div v-if="deviceDetail" class="panel" style="margin-top:16px;">
+              <div class="panel-head"><span class="bdot green"></span><span class="title">{{ deviceDetail.name }} · 设备详情</span><span class="rule"></span><span class="mono hint">{{ deviceDetail.device_code }}</span></div>
+              <div class="panel-body">
+                <div class="grid-3">
+                  <div>
+                    <div class="kv"><span class="k">所属站位</span><span class="v">{{ deviceDetail.site || '--' }}</span></div>
+                    <div class="kv"><span class="k">经纬度</span><span class="v">{{ fmt.num(deviceDetail.longitude, 4) }}, {{ fmt.num(deviceDetail.latitude, 4) }}</span></div>
+                    <div class="kv"><span class="k">安装深度</span><span class="v">{{ deviceDetail.depth_m ? deviceDetail.depth_m + ' m' : '--' }}</span></div>
+                    <div class="kv"><span class="k">安装时间</span><span class="v">{{ fmt.dateTime(deviceDetail.installed_at) }}</span></div>
+                    <div class="kv"><span class="k">累计记录</span><span class="v">{{ fmt.int(deviceDetail.reading_count) }}</span></div>
+                  </div>
+                  <div>
+                    <div class="kv"><span class="k">供电方式</span><span class="v">{{ (deviceDetail.config || {}).power || '--' }}</span></div>
+                    <div class="kv"><span class="k">通信方案</span><span class="v">{{ (deviceDetail.config || {}).comm || '--' }}</span></div>
+                    <div class="kv"><span class="k">太阳能电压</span><span class="v">{{ deviceDetail.solar_voltage ? deviceDetail.solar_voltage + ' V' : '--' }}</span></div>
+                    <div class="kv"><span class="k">最近校准</span><span class="v">{{ (deviceDetail.config || {}).last_calibration || '--' }}</span></div>
+                    <div class="kv"><span class="k">配置项</span><span class="v">{{ ((deviceDetail.config || {}).sensors || []).join(' / ') || '--' }}</span></div>
+                  </div>
+                  <div>
+                    <div class="kv" v-if="deviceDetail.latest"><span class="k">最近上报</span><span class="v">{{ fmt.dateTime(deviceDetail.latest.ts) }}</span></div>
+                    <div class="kv" v-for="k in METRIC_ORDER" :key="k" v-if="deviceDetail.latest">
+                      <span class="k">{{ METRIC_META[k].label }}</span>
+                      <span class="v">{{ fmt.num(deviceDetail.latest[k]) }} {{ METRIC_META[k].unit }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="notice" style="margin-top:12px;">{{ (deviceDetail.config || {}).summary || '暂无站位说明' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 历史数据 -->
+      <template v-if="view === 'history'">
+        <div class="panel">
+          <div class="panel-head"><span class="bdot"></span><span class="title">历史数据查询</span><span class="rule"></span><span class="hint">原始观测与聚合曲线</span></div>
+          <div class="panel-body">
+            <div class="toolbar">
+              <div class="field"><label for="hDevice">监测设备</label>
+                <select id="hDevice" class="select" v-model="historyQuery.device_code">
+                  <option value="">请选择</option>
+                  <option v-for="d in historyDeviceOptions" :key="d.device_code" :value="d.device_code">{{ d.name }}</option>
+                </select>
+              </div>
+              <div class="field"><label for="hMetric">监测指标</label>
+                <select id="hMetric" class="select" v-model="historyQuery.metric">
+                  <option v-for="m in metricsMeta" :key="m.key" :value="m.key">{{ m.label }}<template v-if="m.unit">（{{ m.unit }}）</template></option>
+                </select>
+              </div>
+              <div class="field"><label for="hGran">时间粒度</label>
+                <select id="hGran" class="select" v-model="historyQuery.granularity">
+                  <option value="1m">1 分钟均值</option><option value="1h">1 小时均值</option><option value="1d">日均值</option>
+                </select>
+              </div>
+              <div class="field"><label for="hHours">时间范围</label>
+                <select id="hHours" class="select" v-model.number="historyQuery.hours">
+                  <option :value="6">近 6 小时</option><option :value="24">近 24 小时</option>
+                  <option :value="72">近 3 天</option><option :value="168">近 7 天</option><option :value="336">近 14 天</option>
+                </select>
+              </div>
+              <div class="field"><label for="hCompare">多设备对比（可选）</label>
+                <select id="hCompare" class="select" v-model="historyQuery.device_codes" multiple size="1" style="min-height:34px;">
+                  <option v-for="d in historyDeviceOptions" :key="d.device_code" :value="d.device_code">{{ d.name }}</option>
+                </select>
+              </div>
+              <button class="btn primary" :disabled="historyBusy" @click="loadHistory">
+                <span v-html="icon('search', 14)"></span><span>{{ historyBusy ? '查询中…' : '查询' }}</span>
+              </button>
+              <button class="btn" @click="exportCsv"><span v-html="icon('download', 14)"></span><span>导出 CSV</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><span class="bdot green"></span><span class="title">数据曲线</span><span class="rule"></span>
+            <span class="hint" v-if="historyResult">记录 {{ historyResult.count !== undefined ? historyResult.count : '多设备' }} 条</span>
+          </div>
+          <div class="panel-body"><div id="historyChart" class="chart-box"></div></div>
+        </div>
+
+        <div class="grid-3" v-if="historyResult && historyResult.quality">
+          <div class="stat-card"><div class="icon-box green" v-html="icon('check', 16)"></div><div><div class="v">{{ historyResult.quality.normal }}</div><div class="k">有效数据</div></div></div>
+          <div class="stat-card"><div class="icon-box yellow" v-html="icon('alert', 16)"></div><div><div class="v">{{ historyResult.quality.suspect }}</div><div class="k">可疑数据</div><div class="sub">相邻点位突变超过量程 35%</div></div></div>
+          <div class="stat-card"><div class="icon-box red" v-html="icon('x', 16)"></div><div><div class="v">{{ historyResult.quality.invalid }}</div><div class="k">无效数据</div><div class="sub">超出传感器量程</div></div></div>
+        </div>
+
+        <div class="panel stretch" v-if="volume" style="--stretch-min: 150px;">
+          <div class="panel-head"><span class="bdot purple"></span><span class="title">数据资产</span><span class="rule"></span></div>
+          <div class="panel-body center-y">
+            <div class="grid-4">
+              <div class="kv"><span class="k">原始记录</span><span class="v">{{ fmt.int(volume.readings) }}</span></div>
+              <div class="kv"><span class="k">聚合记录</span><span class="v">{{ fmt.int(volume.aggregates) }}</span></div>
+              <div class="kv"><span class="k">最早数据</span><span class="v">{{ fmt.dateTime(volume.earliest) }}</span></div>
+              <div class="kv"><span class="k">最新数据</span><span class="v">{{ fmt.dateTime(volume.latest) }}</span></div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 告警记录 -->
+      <template v-if="view === 'alerts'">
+        <div class="grid-4" v-if="alertStats">
+          <div class="stat-card"><div class="icon-box red" v-html="icon('bell', 16)"></div><div><div class="v">{{ alertStats.total }}</div><div class="k">近 {{ alertStats.window_hours }} 小时告警</div></div></div>
+          <div class="stat-card"><div class="icon-box yellow" v-html="icon('alert', 16)"></div><div><div class="v">{{ alertStats.pending }}</div><div class="k">待处置</div></div></div>
+          <div class="stat-card"><div class="icon-box green" v-html="icon('check', 16)"></div><div><div class="v">{{ alertStats.resolved }}</div><div class="k">已处置</div></div></div>
+          <div class="stat-card"><div class="icon-box purple" v-html="icon('shield', 16)"></div><div><div class="v">{{ alertStats.by_level.critical || 0 }}</div><div class="k">严重告警</div><div class="sub">警告 {{ alertStats.by_level.warning || 0 }} 条</div></div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><span class="bdot"></span><span class="title">告警类型分布</span><span class="rule"></span></div>
+            <div class="panel-body"><div id="alertTypeChart" class="chart-box sm"></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="bdot yellow"></span><span class="title">生效告警规则</span><span class="rule"></span><span class="hint">GB 3097 口径</span></div>
+            <div class="panel-body scroll" style="max-height:260px;">
+              <div v-for="r in (modelRules ? modelRules.thresholds : [])" :key="r.metric" style="margin-bottom:8px;">
+                <div style="font-size:12.5px;color:#fff;margin-bottom:4px;">{{ r.metric_label }}<span class="mute" v-if="r.unit"> · {{ r.unit }}</span></div>
+                <div class="pill-list">
+                  <span v-for="c in r.conditions" :key="c.label" :class="['tag', c.level === 'critical' ? 'crit' : 'warn']">{{ c.op }}{{ c.value }} {{ c.label }}</span>
+                </div>
+              </div>
+              <div v-for="t in (modelRules ? modelRules.trends : [])" :key="t.label" class="list-item">
+                <span class="tag info">趋势</span><span>{{ t.label }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel stretch" style="--stretch-min: 280px;">
+          <div class="panel-head"><span class="bdot red"></span><span class="title">告警记录</span><span class="rule"></span><span class="hint">共 {{ alertTotal }} 条</span></div>
+          <div class="panel-body">
+            <div class="toolbar" style="margin-bottom:14px;">
+              <div class="field"><label for="aStatus">处置状态</label>
+                <select id="aStatus" class="select" v-model="alertQuery.status">
+                  <option value="">全部</option><option value="pending">待处置</option><option value="handling">处理中</option><option value="resolved">已处置</option><option value="ignored">已忽略</option>
+                </select>
+              </div>
+              <div class="field"><label for="aLevel">告警级别</label>
+                <select id="aLevel" class="select" v-model="alertQuery.level">
+                  <option value="">全部</option><option value="critical">严重</option><option value="warning">警告</option><option value="info">提示</option>
+                </select>
+              </div>
+              <div class="field"><label for="aType">告警类型</label>
+                <select id="aType" class="select" v-model="alertQuery.type">
+                  <option value="">全部</option><option value="threshold">阈值越限</option><option value="trend">趋势异常</option><option value="model">模型预警</option><option value="device">设备异常</option>
+                </select>
+              </div>
+              <div class="field"><label for="aHours">时间范围</label>
+                <select id="aHours" class="select" v-model.number="alertQuery.hours">
+                  <option :value="24">近 24 小时</option><option :value="72">近 3 天</option><option :value="168">近 7 天</option><option :value="720">近 30 天</option>
+                </select>
+              </div>
+              <button class="btn primary" @click="loadAlerts"><span v-html="icon('search', 14)"></span><span>查询</span></button>
+              <button class="btn" @click="scanAlerts"><span v-html="icon('refresh', 14)"></span><span>执行巡检</span></button>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data">
+                <thead><tr><th>告警编号</th><th>时间</th><th>级别</th><th>类型</th><th>标题</th><th>内容</th><th>区域</th><th class="num">抑制次数</th><th>状态</th><th>处置人</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr v-for="a in alerts" :key="a.id">
+                    <td class="mono">{{ a.alert_code }}</td>
+                    <td class="num">{{ fmt.dateTime(a.created_at) }}</td>
+                    <td><span :class="['tag', a.level === 'critical' ? 'crit' : a.level === 'warning' ? 'warn' : 'info']">{{ a.level_label }}</span></td>
+                    <td><span class="tag mute">{{ a.type_label }}</span></td>
+                    <td>{{ a.title }}</td>
+                    <td class="ellipsis" style="max-width:320px;" :title="a.content">{{ a.content }}</td>
+                    <td>{{ a.region_name || '--' }}</td>
+                    <td class="num">{{ a.suppressed_count }}</td>
+                    <td><span :class="['tag', a.status === 'resolved' ? 'ok' : a.status === 'pending' ? 'warn' : a.status === 'ignored' ? 'mute' : 'info']">{{ { pending: '待处置', handling: '处理中', resolved: '已处置', ignored: '已忽略' }[a.status] || a.status }}</span></td>
+                    <td>{{ a.handler || '--' }}</td>
+                    <td><button class="btn sm ghost" @click="openHandle(a)">处置</button></td>
+                  </tr>
+                  <tr v-if="!alerts.length"><td colspan="11" class="center mute" style="padding:28px;">该条件下暂无告警</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 视频 AI 识别 -->
+      <template v-if="view === 'vision'">
+        <div class="grid-4">
+          <div class="stat-card">
+            <div class="icon-box" :class="visionStatus && visionStatus.online ? 'green' : 'red'" v-html="icon('cpu', 16)"></div>
+            <div>
+              <div class="v">{{ visionStatus ? (visionStatus.online ? '在线' : '离线') : '--' }}</div>
+              <div class="k">视觉推理节点</div>
+              <div class="sub">{{ visionStatus && visionStatus.device_name ? visionStatus.device_name : '未连接' }}</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="icon-box" v-html="icon('target', 16)"></div>
+            <div>
+              <div class="v">{{ visionStatus ? visionStatus.model : '--' }}</div>
+              <div class="k">识别模型</div>
+              <div class="sub">输入 {{ visionStatus ? visionStatus.imgsz : '--' }} px · 阈值 {{ fmt.num(visionConf, 2) }}</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="icon-box purple" v-html="icon('timer', 16)"></div>
+            <div>
+              <div class="v">{{ visionStatus && visionStatus.avg_ms ? fmt.num(visionStatus.avg_ms, 1) + ' ms' : '--' }}</div>
+              <div class="k">平均单帧耗时</div>
+              <div class="sub">累计推理 {{ visionStatus ? visionStatus.requests : 0 }} 次</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="icon-box yellow" v-html="icon('camera', 16)"></div>
+            <div>
+              <div class="v">{{ visionCameras.length }}</div>
+              <div class="k">可接入视频点位</div>
+              <div class="sub">岸基 / 平台摄像头</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2 stretch" style="--stretch-min: 420px;">
+          <div class="panel">
+            <div class="panel-head"><span class="bdot"></span><span class="title">巡视输入</span><span class="rule"></span><span class="hint">样本 / 上传 / 录像</span></div>
+            <div class="panel-body">
+              <div class="grid-2">
+                <div class="field"><label for="vDevice">关联点位</label>
+                  <select id="vDevice" class="select" v-model="visionForm.device_code">
+                    <option value="">不关联点位</option>
+                    <option v-for="c in visionCameras" :key="c.device_code" :value="c.device_code">{{ c.name }}</option>
+                  </select>
+                </div>
+                <div class="field"><label for="vSample">样本影像</label>
+                  <select id="vSample" class="select" v-model="visionForm.sample">
+                    <option value="">请选择</option>
+                    <option v-for="s in visionSamples" :key="s.name" :value="s.name">{{ s.title }}</option>
+                  </select>
+                </div>
+              </div>
+              <div v-if="selectedSample" class="notice" style="margin-bottom:12px;">样本来源：{{ selectedSample.source }}。{{ selectedSample.note }}</div>
+              <div class="field"><label for="vModel">识别权重</label>
+                <div style="display:flex;gap:9px;align-items:center;">
+                  <select id="vModel" class="select" v-model="visionForm.model" style="flex:1;">
+                    <option v-for="m in visionModels" :key="m.name" :value="m.name">{{ m.name }} · {{ m.size_mb }} MB</option>
+                  </select>
+                  <button class="btn" :disabled="visionModelBusy" @click="switchVisionModel">{{ visionModelBusy ? '切换中…' : '切换权重' }}</button>
+                </div>
+              </div>
+              <div class="field"><label for="vConf">置信度阈值 {{ fmt.num(visionConf, 2) }}</label>
+                <input id="vConf" type="range" min="0.1" max="0.9" step="0.05" v-model.number="visionConf" style="width:100%;">
+              </div>
+              <div style="display:flex;gap:9px;flex-wrap:wrap;">
+                <button class="btn primary" :disabled="visionBusy" @click="runVisionDetect()">
+                  <span v-html="icon('play', 14)"></span><span>{{ visionBusy ? '识别中…' : '识别样本影像' }}</span>
+                </button>
+                <label class="btn" style="cursor:pointer;margin:0;">
+                  <span v-html="icon('download', 14)"></span><span>上传图片识别</span>
+                  <input type="file" accept="image/*" style="display:none" @change="onVisionUpload">
+                </label>
+              </div>
+              <div class="hr" style="margin:14px 0 12px;"></div>
+              <div class="field"><label for="vVideo">本地录像路径</label>
+                <input id="vVideo" class="input" v-model="visionForm.video_path" placeholder="D:\\素材\\岸边巡视.mp4">
+              </div>
+              <div class="grid-2">
+                <div class="field"><label for="vFps">采样帧率（帧/秒）</label><input id="vFps" class="input" type="number" min="0.2" max="5" step="0.2" v-model.number="visionForm.sample_fps"></div>
+                <div class="field"><label for="vMax">最多采样帧数</label><input id="vMax" class="input" type="number" min="1" max="600" v-model.number="visionForm.max_frames"></div>
+              </div>
+              <button class="btn" style="width:100%;" :disabled="visionScanBusy" @click="runVisionScan">
+                <span v-html="icon('camera', 14)"></span><span>{{ visionScanBusy ? '巡视中…' : '开始视频巡视' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><span class="bdot green"></span><span class="title">识别结果</span><span class="rule"></span><span class="hint">{{ visionResult ? visionResult.focus_summary : '等待输入' }}</span></div>
+            <div class="panel-body">
+              <img v-if="visionResult && visionResult.annotated_jpeg_base64" class="overlay-img" style="aspect-ratio:16/9;" :src="visionImage(visionResult.annotated_jpeg_base64)" alt="识别标注结果">
+              <div v-else class="empty">选择样本影像或上传图片后执行识别</div>
+              <div v-if="visionResult" class="grid-3" style="margin-top:12px;">
+                <div class="kv"><span class="k">关注目标</span><span class="v">{{ (visionResult.focus_hits || []).length }}</span></div>
+                <div class="kv"><span class="k">框总数</span><span class="v">{{ visionResult.total }}</span></div>
+                <div class="kv"><span class="k">推理耗时</span><span class="v">{{ fmt.num(visionResult.elapsed_ms, 1) }} ms</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" v-if="visionResult">
+          <div class="panel-head"><span class="bdot yellow"></span><span class="title">目标明细</span><span class="rule"></span><span class="hint">按置信度排序</span></div>
+          <div class="panel-body flush">
+            <div class="table-wrap">
+              <table class="data">
+                <thead><tr><th>类别</th><th>业务归类</th><th class="num">置信度</th><th class="num">画面占比</th><th>等级</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr v-for="(d, i) in visionResult.detections" :key="i">
+                    <td>{{ d.label }}<span class="mono mute" style="margin-left:6px;">{{ d.name }}</span></td>
+                    <td>{{ d.category }}</td>
+                    <td class="num">{{ fmt.pct(d.confidence * 100, 1) }}</td>
+                    <td class="num">{{ fmt.pct(d.area_ratio * 100, 2) }}</td>
+                    <td><span :class="['tag', d.level === 'critical' ? 'crit' : d.level === 'warning' ? 'warn' : 'info']">{{ { critical: '严重', warning: '警告', info: '提示' }[d.level] }}</span></td>
+                    <td>
+                      <button v-if="d.focus" class="btn sm ghost" @click="raiseVisionAlert(d)">生成告警</button>
+                      <span v-else class="mute">--</span>
+                    </td>
+                  </tr>
+                  <tr v-if="!visionResult.detections.length"><td colspan="6" class="center mute" style="padding:24px;">本帧未识别到关注目标</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" v-if="visionScan">
+          <div class="panel-head"><span class="bdot"></span><span class="title">视频巡视汇总</span><span class="rule"></span><span class="hint">{{ visionScan.video.name }}</span></div>
+          <div class="panel-body">
+            <div class="grid-4">
+              <div class="kv"><span class="k">视频时长</span><span class="v">{{ visionScan.video.duration_s === null ? '--' : fmt.num(visionScan.video.duration_s, 1) + ' s' }}</span></div>
+              <div class="kv"><span class="k">采样帧数</span><span class="v">{{ visionScan.scan.scanned_frames }}</span></div>
+              <div class="kv"><span class="k">目标总数</span><span class="v">{{ visionScan.scan.total_objects }}</span></div>
+              <div class="kv"><span class="k">单帧均耗时</span><span class="v">{{ visionScan.scan.avg_ms_per_frame === null ? '--' : fmt.num(visionScan.scan.avg_ms_per_frame, 1) + ' ms' }}</span></div>
+            </div>
+            <div class="table-wrap" style="margin-top:12px;">
+              <table class="data">
+                <thead><tr><th>类别</th><th>业务归类</th><th class="num">出现帧数</th><th class="num">单帧最多</th><th class="num">最高置信度</th><th class="num">峰值时刻</th></tr></thead>
+                <tbody>
+                  <tr v-for="c in visionScan.classes" :key="c.name">
+                    <td>{{ c.label }}<span class="mono mute" style="margin-left:6px;">{{ c.name }}</span></td>
+                    <td>{{ c.category }}</td>
+                    <td class="num">{{ c.frames }}</td>
+                    <td class="num">{{ c.max_count }}</td>
+                    <td class="num">{{ fmt.pct(c.max_confidence * 100, 1) }}</td>
+                    <td class="num">{{ c.peak_t === null ? '--' : c.peak_t + ' s' }}</td>
+                  </tr>
+                  <tr v-if="!visionScan.classes.length"><td colspan="6" class="center mute" style="padding:24px;">整段录像未识别到关注目标</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="grid-3" style="margin-top:12px;" v-if="visionScan.previews.length">
+              <div v-for="p in visionScan.previews" :key="p.frame">
+                <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">{{ p.t }} s · {{ p.total }} 个目标</div>
+                <img class="overlay-img" style="aspect-ratio:16/9;" :src="visionImage(p.image)" alt="巡视画面预览">
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 赤潮模型 -->
+      <template v-if="view === 'model'">
+        <div class="grid-4" v-if="modelInfo">
+          <div class="stat-card"><div class="icon-box" :class="modelInfo.loaded ? 'green' : 'yellow'" v-html="icon('cpu', 16)"></div>
+            <div><div class="v" style="font-size:18px;">{{ modelInfo.loaded ? '模型已加载' : '规则降级' }}</div><div class="k">{{ modelInfo.algorithm || modelInfo.mode }}</div><div class="sub">版本 {{ modelInfo.version }}</div></div>
+          </div>
+          <div class="stat-card"><div class="icon-box" v-html="icon('target', 16)"></div><div><div class="v">{{ fmt.num((modelInfo.metrics || {}).accuracy, 4) }}</div><div class="k">测试集准确率</div><div class="sub">{{ fmt.int((modelInfo.metrics || {}).test_samples) }} 个测试样本</div></div></div>
+          <div class="stat-card"><div class="icon-box green" v-html="icon('shield', 16)"></div><div><div class="v">{{ fmt.num((modelInfo.metrics || {}).macro_f1, 4) }}</div><div class="k">宏平均 F1</div><div class="sub">ROC-AUC {{ fmt.num((modelInfo.metrics || {}).roc_auc_ovr, 4) }}</div></div></div>
+          <div class="stat-card"><div class="icon-box yellow" v-html="icon('alert', 16)"></div><div><div class="v">{{ fmt.pct(((modelInfo.metrics || {}).high_risk_recall || 0) * 100) }}</div><div class="k">Ⅲ/Ⅳ 级召回率</div><div class="sub">漏报率 {{ fmt.pct(((modelInfo.metrics || {}).high_risk_false_negative_rate || 0) * 100) }}</div></div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><span class="bdot"></span><span class="title">各风险等级评估指标</span><span class="rule"></span><span class="hint">精确率 / 召回率 / F1</span></div>
+            <div class="panel-body"><div id="modelChart" class="chart-box"></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="bdot purple"></span><span class="title">混淆矩阵</span><span class="rule"></span><span class="hint">测试集</span></div>
+            <div class="panel-body"><div id="confusionChart" class="chart-box"></div></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><span class="bdot yellow"></span><span class="title">风险分级阈值</span><span class="rule"></span><span class="hint">修改后立即生效</span></div>
+            <div class="panel-body">
+              <div class="grid-3">
+                <div class="field"><label for="t1">Ⅱ级起点</label><input id="t1" class="input" type="number" step="0.01" min="0.01" max="0.99" v-model.number="thresholds.t1"></div>
+                <div class="field"><label for="t2">Ⅲ级起点</label><input id="t2" class="input" type="number" step="0.01" min="0.01" max="0.99" v-model.number="thresholds.t2"></div>
+                <div class="field"><label for="t3">Ⅳ级起点</label><input id="t3" class="input" type="number" step="0.01" min="0.01" max="0.99" v-model.number="thresholds.t3"></div>
+              </div>
+              <div class="notice" style="margin:12px 0;">阈值需满足 0 &lt; t₁ &lt; t₂ &lt; t₃ &lt; 1，保存后写入模型配置表并对后续预测立即生效。</div>
+              <div style="display:flex;gap:9px;">
+                <button class="btn primary" @click="saveThresholds"><span v-html="icon('check', 14)"></span><span>保存阈值</span></button>
+                <button class="btn" @click="reloadModel"><span v-html="icon('refresh', 14)"></span><span>重新加载模型</span></button>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="bdot green"></span><span class="title">训练与特征信息</span><span class="rule"></span></div>
+            <div class="panel-body">
+              <div class="kv"><span class="k">训练时间</span><span class="v">{{ modelInfo ? modelInfo.trained_at : '--' }}</span></div>
+              <div class="kv"><span class="k">训练样本</span><span class="v">{{ modelInfo ? fmt.int((modelInfo.training || {}).samples) : '--' }}</span></div>
+              <div class="kv"><span class="k">输入窗口</span><span class="v">{{ modelInfo ? ((modelInfo.training || {}).window_hours || 24) + ' 小时' : '--' }}</span></div>
+              <div class="kv"><span class="k">预测时段</span><span class="v">{{ modelInfo ? ((modelInfo.training || {}).horizon_hours || 48) + ' 小时' : '--' }}</span></div>
+              <div class="kv"><span class="k">特征维度</span><span class="v">{{ modelInfo ? ((modelInfo.features || {}).count || 49) + ' 维' : '--' }}</span></div>
+              <div class="hr"></div>
+              <div style="font-size:12.5px;color:var(--text-dim);margin-bottom:8px;">特征重要度前 8 项</div>
+              <div class="pill-list">
+                <span v-for="f in ((modelInfo ? modelInfo.features : {}) || {}).top ? modelInfo.features.top.slice(0, 8) : []" :key="f.feature" class="tag info">
+                  {{ f.label }} · {{ fmt.num(f.importance, 4) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel stretch" style="--stretch-min: 240px;">
+          <div class="panel-head"><span class="bdot"></span><span class="title">模型配置版本</span><span class="rule"></span></div>
+          <div class="panel-body flush">
+            <div class="table-wrap">
+              <table class="data">
+                <thead><tr><th>名称</th><th>版本</th><th>状态</th><th>算法 / 参数</th><th>说明</th><th>更新人</th><th>更新时间</th></tr></thead>
+                <tbody>
+                  <tr v-for="c in modelConfigs" :key="c.id">
+                    <td class="mono">{{ c.name }}</td>
+                    <td class="mono">{{ c.version }}</td>
+                    <td><span :class="['tag', c.active ? 'ok' : 'mute']">{{ c.active ? '生效中' : '未启用' }}</span></td>
+                    <td class="mono ellipsis" style="max-width:320px;" :title="JSON.stringify(c.params)">{{ JSON.stringify(c.params) }}</td>
+                    <td class="ellipsis" style="max-width:280px;">{{ c.description }}</td>
+                    <td>{{ c.updated_by || '--' }}</td>
+                    <td class="num">{{ fmt.dateTime(c.updated_at) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 红树林 -->
+      <template v-if="view === 'mangrove'">
+        <div class="grid-4" v-if="mangroveStats">
+          <div class="stat-card"><div class="icon-box green" v-html="icon('leaf', 16)"></div><div><div class="v">{{ fmt.num(mangroveStats.total_area_ha, 1) }}</div><div class="k">监测面积（公顷）</div><div class="sub">{{ mangroveStats.region_count }} 个片区</div></div></div>
+          <div class="stat-card"><div class="icon-box" v-html="icon('target', 16)"></div><div><div class="v">{{ fmt.num(mangroveStats.average_health, 1) }}</div><div class="k">面积加权健康度</div></div></div>
+          <div class="stat-card"><div class="icon-box green" v-html="icon('arrowUp', 16)"></div><div><div class="v">{{ mangroveStats.improved_regions }}</div><div class="k">面积增长片区</div></div></div>
+          <div class="stat-card"><div class="icon-box yellow" v-html="icon('arrowDown', 16)"></div><div><div class="v">{{ mangroveStats.declined_regions }}</div><div class="k">面积减少片区</div></div></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><span class="bdot green"></span><span class="title">健康度期次趋势</span><span class="rule"></span><span class="hint">NDVI / CMRI 综合评分</span></div>
+          <div class="panel-body"><div id="mangroveChart" class="chart-box"></div></div>
+        </div>
+
+        <div class="grid-3 stretch" style="--stretch-min: 320px;">
+          <div class="panel" v-for="r in mangroveRegions" :key="r.region_code">
+            <div class="panel-head"><span class="bdot green"></span><span class="title">{{ r.region_name }}</span><span class="rule"></span><span class="hint">{{ r.period }}</span></div>
+            <div class="panel-body">
+              <div class="kv"><span class="k">面积</span><span class="v">{{ fmt.num(r.area_ha, 1) }} 公顷</span></div>
+              <div class="kv"><span class="k">面积变化</span><span class="v" :style="{ color: (r.change_pct || 0) >= 0 ? '#29e7a0' : '#ff4d6d' }">{{ (r.change_pct || 0) >= 0 ? '+' : '' }}{{ fmt.num(r.change_pct, 2) }}%</span></div>
+              <div class="kv"><span class="k">健康度</span><span class="v">{{ fmt.num(r.health_score, 1) }}（{{ r.health_level }}）</span></div>
+              <div class="kv"><span class="k">NDVI 均值</span><span class="v">{{ fmt.num(r.ndvi_mean, 3) }}</span></div>
+              <div class="kv"><span class="k">NDWI 均值</span><span class="v">{{ fmt.num(r.ndwi_mean, 3) }}</span></div>
+              <div class="kv"><span class="k">数据来源</span><span class="v">{{ r.data_source || '--' }}</span></div>
+              <div class="notice" style="margin:10px 0;font-size:11.5px;">{{ r.remark }}</div>
+              <button class="btn" style="width:100%;" :disabled="mangroveBusy" @click="runMangroveAnalysis(r.region_code)">
+                <span v-html="icon('satellite', 14)"></span><span>{{ mangroveBusy ? '计算中…' : '运行分割与变化检测' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" v-if="mangroveAnalysis">
+          <div class="panel-head"><span class="bdot"></span><span class="title">遥感分割结果 · {{ mangroveAnalysis.region_name }}</span><span class="rule"></span><span class="hint">{{ mangroveAnalysis.algorithm_version || 'NDVI/NDWI/MNDWI/CMRI 决策融合' }}</span></div>
+          <div class="panel-body">
+            <div class="grid-4">
+              <div><div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">前期分割掩膜</div><img class="overlay-img" :src="mangroveAnalysis.overlays.before_mask" alt="前期红树林分割掩膜"></div>
+              <div><div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">后期分割掩膜</div><img class="overlay-img" :src="mangroveAnalysis.overlays.after_mask" alt="后期红树林分割掩膜"></div>
+              <div><div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">新增斑块</div><img class="overlay-img" :src="mangroveAnalysis.overlays.gain_mask" alt="新增红树林斑块"></div>
+              <div><div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">减少斑块</div><img class="overlay-img" :src="mangroveAnalysis.overlays.loss_mask" alt="减少红树林斑块"></div>
+            </div>
+            <div class="grid-4" style="margin-top:14px;">
+              <div class="kv"><span class="k">前期面积</span><span class="v">{{ fmt.num(mangroveAnalysis.before.area_ha, 2) }} ha</span></div>
+              <div class="kv"><span class="k">后期面积</span><span class="v">{{ fmt.num(mangroveAnalysis.after.area_ha, 2) }} ha</span></div>
+              <div class="kv"><span class="k">面积变化</span><span class="v">{{ fmt.num(mangroveAnalysis.change.change_pct, 2) }}%</span></div>
+              <div class="kv"><span class="k">健康度变化</span><span class="v">{{ fmt.num(mangroveAnalysis.change.health_change, 2) }}</span></div>
+            </div>
+            <div class="notice" style="margin-top:12px;">{{ mangroveAnalysis.area_calibration.note }}参考区实际面积 {{ fmt.num(mangroveAnalysis.area_calibration.reference_area_ha, 1) }} 公顷。</div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 账号与审计：标签页承载三类内容，避免纵向堆叠导致页面失控 -->
+      <template v-if="view === 'accounts'">
+        <div class="accounts-view">
+          <div class="tab-bar" role="tablist" aria-label="账号与审计">
+            <button type="button" role="tab" id="tabUsers" class="tab-btn" :aria-selected="accountTab === 'users'"
+                    aria-controls="panelUsers" @click="accountTab = 'users'">
+              <span v-html="icon('users', 15)"></span><span>平台账号</span><span class="count">{{ users.length }}</span>
+            </button>
+            <button type="button" role="tab" id="tabCreate" class="tab-btn" :aria-selected="accountTab === 'create'"
+                    aria-controls="panelCreate" @click="accountTab = 'create'">
+              <span v-html="icon('plus', 15)"></span><span>新增账号</span>
+            </button>
+            <button type="button" role="tab" id="tabAudit" class="tab-btn" :aria-selected="accountTab === 'audit'"
+                    aria-controls="panelAudit" @click="accountTab = 'audit'">
+              <span v-html="icon('file', 15)"></span><span>操作审计日志</span><span class="count">{{ auditLogs.length }}</span>
+            </button>
+          </div>
+
+          <div v-if="accountTab === 'users'" id="panelUsers" role="tabpanel" aria-labelledby="tabUsers" class="tab-panel">
+          <div class="panel">
+            <div class="panel-head"><span class="bdot"></span><span class="title">平台账号</span><span class="rule"></span><span class="hint">{{ users.length }} 个</span></div>
+            <div class="panel-body flush">
+              <div class="table-wrap table-fill">
+                <table class="data">
+                  <thead><tr><th>账号</th><th>姓名</th><th>角色</th><th>手机号</th><th>区域范围</th><th>最近登录</th><th>状态</th><th>操作</th></tr></thead>
+                  <tbody>
+                    <tr v-for="u in users" :key="u.id">
+                      <td class="mono">{{ u.username }}</td>
+                      <td>{{ u.display_name }}</td>
+                      <td><span class="tag purple">{{ roleLabel(u.role) }}</span></td>
+                      <td class="mono">{{ u.phone || '--' }}</td>
+                      <td>{{ u.region_scope || '全部' }}</td>
+                      <td class="num">{{ fmt.dateTime(u.last_login) }}</td>
+                      <td><span :class="['tag', u.active ? 'ok' : 'mute']">{{ u.active ? '启用' : '停用' }}</span></td>
+                      <td><button class="btn sm ghost" @click="toggleUser(u)">{{ u.active ? '停用' : '启用' }}</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="table-foot">共 {{ users.length }} 个账号 · 启用 {{ activeUsers }} · 停用 {{ users.length - activeUsers }}</div>
+            </div>
+          </div>
+
+          </div>
+
+          <div v-else-if="accountTab === 'create'" id="panelCreate" role="tabpanel" aria-labelledby="tabCreate" class="tab-panel">
+            <div class="grid-2">
+            <div class="panel">
+              <div class="panel-head"><span class="bdot green"></span><span class="title">新增账号</span><span class="rule"></span></div>
+              <div class="panel-body">
+                <div class="grid-3">
+                  <div class="field"><label for="nuName">账号</label><input id="nuName" class="input" v-model="newUser.username" placeholder="登录账号"></div>
+                  <div class="field"><label for="nuDisplay">姓名</label><input id="nuDisplay" class="input" v-model="newUser.display_name" placeholder="显示名称"></div>
+                  <div class="field"><label for="nuRole">角色</label>
+                    <select id="nuRole" class="select" v-model="newUser.role">
+                      <option value="admin">管理员</option><option value="technician">技术员</option><option value="farmer">养殖户</option><option value="viewer">访客</option>
+                    </select>
+                  </div>
+                  <div class="field"><label for="nuPass">初始密码</label><input id="nuPass" class="input" type="password" v-model="newUser.password" placeholder="不少于 8 位"></div>
+                  <div class="field"><label for="nuPhone">手机号</label><input id="nuPhone" class="input" v-model="newUser.phone" placeholder="用于短信告警"></div>
+                  <div class="field"><label for="nuScope">区域范围</label>
+                    <select id="nuScope" class="select" v-model="newUser.region_scope">
+                      <option value="">全部区域</option>
+                      <option v-for="r in regions" :key="r.code" :value="r.code">{{ r.name }}</option>
+                    </select>
+                  </div>
+                </div>
+                <button class="btn primary" style="margin-top:12px;" @click="createUser"><span v-html="icon('plus', 14)"></span><span>创建账号</span></button>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head"><span class="bdot yellow"></span><span class="title">修改本账号密码</span><span class="rule"></span></div>
+              <div class="panel-body">
+                <div class="grid-2">
+                  <div class="field"><label for="oldPass">原密码</label><input id="oldPass" class="input" type="password" v-model="passwordForm.old_password"></div>
+                  <div class="field"><label for="newPass">新密码</label><input id="newPass" class="input" type="password" v-model="passwordForm.new_password" placeholder="不少于 8 位"></div>
+                </div>
+                <button class="btn" style="margin-top:12px;" @click="changePassword"><span v-html="icon('lock', 14)"></span><span>更新密码</span></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><span class="bdot purple"></span><span class="title">账号角色说明</span><span class="rule"></span><span class="hint">创建账号时选择角色</span></div>
+            <div class="panel-body">
+              <div class="grid-4">
+                <div class="role-card"><b>管理员</b><span>设备、模型、账号与审计日志的完整管理权限，账号相关接口仅管理员可调用。</span></div>
+                <div class="role-card"><b>技术员</b><span>日常设备运维、采样间隔调整、模型参数维护与告警处置。</span></div>
+                <div class="role-card"><b>养殖户</b><span>绑定区域范围（如 LJ-HQ 黄岐半岛海域）后，查看该区域的监测数据与告警。</span></div>
+                <div class="role-card"><b>访客</b><span>只读浏览监测数据、统计报表与可视化大屏，不参与写操作。</span></div>
+              </div>
+            </div>
+          </div>
+          </div>
+
+          <div v-else id="panelAudit" role="tabpanel" aria-labelledby="tabAudit" class="tab-panel">
+          <div class="panel">
+          <div class="panel-head"><span class="bdot purple"></span><span class="title">操作审计日志</span><span class="rule"></span><span class="hint">最近 {{ auditLogs.length }} 条</span></div>
+          <div class="panel-body flush">
+            <div class="table-wrap table-fill">
+              <table class="data">
+                <thead><tr><th>时间</th><th>账号</th><th>操作</th><th>对象</th><th>详情</th><th>来源 IP</th></tr></thead>
+                <tbody>
+                  <tr v-for="l in auditLogs" :key="l.id">
+                    <td class="num">{{ fmt.dateTime(l.created_at) }}</td>
+                    <td class="mono">{{ l.username || '--' }}</td>
+                    <td><span class="tag info">{{ l.action }}</span></td>
+                    <td class="mono">{{ l.target || '--' }}</td>
+                    <td class="ellipsis" style="max-width:340px;">{{ l.detail ? JSON.stringify(l.detail) : '--' }}</td>
+                    <td class="mono">{{ l.ip || '--' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-foot">共 {{ auditLogs.length }} 条记录 · 按时间倒序</div>
+          </div>
+        </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 巡护任务 -->
+      <template v-if="view === 'patrol'">
+        <div class="grid-4" v-if="patrolSummary">
+          <div class="stat-card"><div class="icon-box" v-html="icon('list', 16)"></div><div><div class="v">{{ patrolSummary.total }}</div><div class="k">巡护任务总数</div><div class="sub">含全部状态</div></div></div>
+          <div class="stat-card"><div class="icon-box yellow" v-html="icon('timer', 16)"></div><div><div class="v">{{ patrolSummary.pending }}</div><div class="k">待领取</div><div class="sub">移动端可领取执行</div></div></div>
+          <div class="stat-card"><div class="icon-box" v-html="icon('play', 16)"></div><div><div class="v">{{ patrolSummary.working }}</div><div class="k">进行中</div><div class="sub">现场处置中</div></div></div>
+          <div class="stat-card"><div class="icon-box green" v-html="icon('check', 16)"></div><div><div class="v">{{ patrolSummary.done }}</div><div class="k">已完成</div><div class="sub">完成率 {{ fmt.pct(patrolSummary.done_rate, 1) }}<template v-if="patrolSummary.avg_minutes"> · 均耗时 {{ patrolSummary.avg_minutes }} 分钟</template></div></div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><span class="bdot"></span><span class="title">派发巡护任务</span><span class="rule"></span><span class="hint">技术员及以上</span></div>
+            <div class="panel-body">
+              <div class="toolbar" style="align-items:flex-end;">
+                <div class="field" style="min-width:240px;flex:1;"><label for="pTitle">任务标题</label><input id="pTitle" class="input" v-model="patrolForm.title" placeholder="例如：东洛岛岸线海漂垃圾巡查"></div>
+                <div class="field"><label for="pRegion">片区</label>
+                  <select id="pRegion" class="select" v-model="patrolForm.region_code"><option value="">不指定</option><option v-for="r in regions" :key="r.code" :value="r.code">{{ r.name }}</option></select>
+                </div>
+                <div class="field"><label for="pPriority">优先级</label>
+                  <select id="pPriority" class="select" v-model="patrolForm.priority"><option value="normal">常规</option><option value="high">优先</option><option value="urgent">紧急</option></select>
+                </div>
+                <div class="field"><label for="pDue">时限</label>
+                  <select id="pDue" class="select" v-model.number="patrolForm.due_hours"><option :value="4">4 小时</option><option :value="12">12 小时</option><option :value="24">24 小时</option><option :value="72">3 天</option><option :value="168">7 天</option></select>
+                </div>
+              </div>
+              <div class="toolbar" style="align-items:flex-end;margin-top:10px;">
+                <div class="field" style="min-width:300px;flex:1;"><label for="pDevice">关联设备</label>
+                  <select id="pDevice" class="select" v-model="patrolForm.device_code"><option value="">不关联</option><option v-for="d in devices" :key="d.device_code" :value="d.device_code">{{ d.name }}</option></select>
+                </div>
+                <div class="field" style="min-width:150px;"><label for="pAssignee">指定执行人</label><input id="pAssignee" class="input" v-model="patrolForm.assignee" placeholder="留空则待领取"></div>
+              </div>
+              <div class="field" style="margin-top:10px;"><label for="pDetail">任务说明</label><textarea id="pDetail" class="textarea" v-model="patrolForm.detail" placeholder="现场需要检查的内容、拍摄要求与处置口径"></textarea></div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:12px;">
+                <button class="btn primary" @click="createPatrol"><span v-html="icon('plus', 14)"></span><span>派发任务</span></button>
+                <span class="mute" style="font-size:11.5px;">派发后移动端可领取、定位、拍照识别并提交存证</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><span class="bdot green"></span><span class="title">巡检报告与证据链</span><span class="rule"></span><span class="hint">近 {{ patrolQuery.hours }} 小时</span></div>
+            <div class="panel-body scroll" style="max-height:430px;">
+              <div class="kpi-row" v-if="patrolReport">
+                <div class="kpi"><div class="kpi-body"><div class="kpi-v">{{ patrolReport.tasks.total }}</div><div class="kpi-k">窗口内任务</div></div></div>
+                <div class="kpi"><div class="kpi-body"><div class="kpi-v">{{ patrolReport.tasks.done }}</div><div class="kpi-k">已完成</div></div></div>
+                <div class="kpi"><div class="kpi-body"><div class="kpi-v">{{ patrolReport.detections.total }}</div><div class="kpi-k">识别目标</div></div></div>
+              </div>
+              <div v-if="patrolReport" style="margin-top:12px;">
+                <div class="kv"><span class="k">报告生成时间</span><span class="v">{{ fmt.dateTime(patrolReport.generated_at) }}</span></div>
+                <div class="kv"><span class="k">时间窗</span><span class="v">{{ patrolReport.window_hours }} 小时</span></div>
+                <div class="kv"><span class="k">窗口内告警</span><span class="v">{{ patrolReport.alerts.total }}</span></div>
+                <div class="kv"><span class="k">现场执行人</span><span class="v">{{ patrolReport.operators.length ? patrolReport.operators.join('、') : '--' }}</span></div>
+              </div>
+              <div v-if="patrolReport && patrolReport.evidence_chain.length" style="margin-top:12px;">
+                <div class="nav-cap">现场存证指纹（SHA-256）</div>
+                <div v-for="e in patrolReport.evidence_chain" :key="e.task_code" class="list-item">
+                  <span class="tag ok">存证</span>
+                  <span class="mono">{{ e.task_code }}</span>
+                  <span class="mono mute ellipsis" style="margin-left:auto;max-width:190px;" :title="e.digest">{{ e.digest ? e.digest.slice(0, 20) + '…' : '--' }}</span>
+                </div>
+              </div>
+              <div v-else class="center mute" style="padding:22px;font-size:12px;">该时间窗内还没有完成的任务存证</div>
+              <div v-if="patrolReport && patrolReport.detections.items.length" style="margin-top:14px;">
+                <div class="nav-cap">现场识别明细</div>
+                <div v-for="(d, i) in patrolReport.detections.items" :key="i" class="list-item">
+                  <span class="tag warn">{{ d.label }}</span>
+                  <span class="mute ellipsis">{{ d.region_name || '未指定片区' }}</span>
+                  <span class="num" style="margin-left:auto;">{{ fmt.pct((d.confidence || 0) * 100, 1) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel stretch" style="--stretch-min: 300px;">
+          <div class="panel-head"><span class="bdot"></span><span class="title">巡护任务看板</span><span class="rule"></span><span class="hint">共 {{ patrolTasks.length }} 条</span></div>
+          <div class="panel-body">
+            <div class="toolbar" style="margin-bottom:14px;">
+              <div class="field"><label for="ptStatus">任务状态</label>
+                <select id="ptStatus" class="select" v-model="patrolQuery.status"><option value="">全部</option><option value="pending">待领取</option><option value="working">进行中</option><option value="done">已完成</option></select>
+              </div>
+              <div class="field"><label for="ptRegion">片区</label>
+                <select id="ptRegion" class="select" v-model="patrolQuery.region_code"><option value="">全部</option><option v-for="r in regions" :key="r.code" :value="r.code">{{ r.name }}</option></select>
+              </div>
+              <div class="field"><label for="ptHours">报告时间窗</label>
+                <select id="ptHours" class="select" v-model.number="patrolQuery.hours"><option :value="24">近 24 小时</option><option :value="72">近 3 天</option><option :value="168">近 7 天</option><option :value="720">近 30 天</option></select>
+              </div>
+              <button class="btn primary" @click="loadPatrol"><span v-html="icon('search', 14)"></span><span>查询</span></button>
+              <a class="btn" href="/m" target="_blank" rel="noopener"><span v-html="icon('camera', 14)"></span><span>打开移动巡护端</span></a>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data">
+                <thead><tr><th>任务编号</th><th>标题</th><th>片区</th><th>优先级</th><th>状态</th><th>执行人</th><th>派发时间</th><th>截止时间</th><th class="num">识别目标</th><th>存证指纹</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr v-for="t in patrolTasks" :key="t.task_code">
+                    <td class="mono">{{ t.task_code }}</td>
+                    <td class="ellipsis" style="max-width:260px;" :title="t.title">{{ t.title }}</td>
+                    <td>{{ t.region_name || '--' }}</td>
+                    <td><span :class="['tag', patrolPriorityTag(t.priority)]">{{ t.priority_label }}</span></td>
+                    <td><span :class="['tag', patrolStatusTag(t.status)]">{{ t.status_label }}</span></td>
+                    <td>{{ t.assignee || '待领取' }}</td>
+                    <td class="num">{{ fmt.dateTime(t.created_at) }}</td>
+                    <td class="num">{{ fmt.dateTime(t.due_at) }}</td>
+                    <td class="num">{{ t.detection_count }}</td>
+                    <td class="mono ellipsis" style="max-width:150px;" :title="t.digest || ''">{{ t.digest ? t.digest.slice(0, 14) + '…' : '--' }}</td>
+                    <td><button class="btn sm ghost" @click="openPatrol(t.task_code)">详情</button></td>
+                  </tr>
+                  <tr v-if="!patrolTasks.length"><td colspan="11" class="center mute" style="padding:28px;">{{ patrolBusy ? '正在加载巡护任务…' : '当前筛选下暂无巡护任务，可从上方派发一条' }}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </template>
+    </main>
+  </div>
+
+  <!-- 巡护任务详情弹窗 -->
+  <div v-if="patrolDetail" class="modal-mask" @click.self="patrolDetail = null">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="patrolDetailTitle">
+      <div class="modal-head">
+        <span class="bdot"></span>
+        <span id="patrolDetailTitle">{{ patrolDetail.title }}</span>
+        <span class="tag" :class="patrolStatusTag(patrolDetail.status)" style="margin-left:auto;">{{ patrolDetail.status_label }}</span>
+      </div>
+      <div class="modal-body">
+        <div class="kv"><span class="k">任务编号</span><span class="v">{{ patrolDetail.task_code }}</span></div>
+        <div class="kv"><span class="k">优先级</span><span class="v">{{ patrolDetail.priority_label }}</span></div>
+        <div class="kv"><span class="k">片区</span><span class="v">{{ patrolDetail.region_name || '--' }}</span></div>
+        <div class="kv"><span class="k">关联设备</span><span class="v">{{ patrolDetail.device_name || '--' }}</span></div>
+        <div class="kv"><span class="k">派发人</span><span class="v">{{ patrolDetail.created_by || '--' }}</span></div>
+        <div class="kv"><span class="k">执行人</span><span class="v">{{ patrolDetail.assignee || '待领取' }}</span></div>
+        <div class="kv"><span class="k">派发时间</span><span class="v">{{ fmt.dateTime(patrolDetail.created_at) }}</span></div>
+        <div class="kv"><span class="k">截止时间</span><span class="v">{{ fmt.dateTime(patrolDetail.due_at) }}</span></div>
+        <div class="kv" v-if="patrolDetail.started_at"><span class="k">开始时间</span><span class="v">{{ fmt.dateTime(patrolDetail.started_at) }}</span></div>
+        <div class="kv" v-if="patrolDetail.finished_at"><span class="k">完成时间</span><span class="v">{{ fmt.dateTime(patrolDetail.finished_at) }}</span></div>
+        <div class="kv" v-if="patrolDetail.location_note"><span class="k">现场位置</span><span class="v">{{ patrolDetail.location_note }}</span></div>
+        <div class="kv" v-if="patrolDetail.latitude"><span class="k">经纬度</span><span class="v">{{ patrolDetail.latitude }}, {{ patrolDetail.longitude }}</span></div>
+        <div v-if="patrolDetail.detail" style="margin-top:8px;"><div class="nav-cap">任务说明</div><div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;">{{ patrolDetail.detail }}</div></div>
+        <div v-if="patrolDetail.result_note" style="margin-top:10px;"><div class="nav-cap">现场情况</div><div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;">{{ patrolDetail.result_note }}</div></div>
+        <div v-if="patrolDetail.evidence && patrolDetail.evidence.detections && patrolDetail.evidence.detections.length" style="margin-top:12px;">
+          <div class="nav-cap">现场识别结果（模型真实输出）</div>
+          <div v-for="(d, i) in patrolDetail.evidence.detections" :key="i" class="list-item">
+            <span class="tag warn">{{ d.label || d.name }}</span>
+            <span class="mute">{{ d.category || '--' }}</span>
+            <span class="num" style="margin-left:auto;">{{ fmt.pct((d.confidence || 0) * 100, 1) }}</span>
+          </div>
+          <div class="kv" style="margin-top:6px;"><span class="k">识别权重</span><span class="v">{{ patrolDetail.evidence.model || '--' }}</span></div>
+          <div class="kv"><span class="k">图片指纹</span><span class="v ellipsis" :title="patrolDetail.evidence.image_sha256 || ''">{{ patrolDetail.evidence.image_sha256 || '--' }}</span></div>
+        </div>
+        <div v-if="patrolDetail.digest" style="margin-top:12px;">
+          <div class="nav-cap">存证指纹（SHA-256）</div>
+          <div class="qa-line mono" style="font-size:11px;word-break:break-all;color:var(--green);line-height:1.6;">{{ patrolDetail.digest }}</div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <a class="btn" style="flex:1;" href="/m" target="_blank" rel="noopener"><span v-html="icon('camera', 14)"></span><span>移动端现场执行</span></a>
+        <button class="btn ghost" @click="patrolDetail = null"><span v-html="icon('x', 14)"></span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 告警处置弹窗 -->
+  <div v-if="handlingAlert" class="modal-mask" @click.self="handlingAlert = null">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="handleTitle">
+      <div class="modal-head">
+        <span class="bdot red pulse"></span>
+        <span id="handleTitle">{{ handlingAlert.title }}</span>
+      </div>
+      <div class="modal-body">
+        <div class="notice crit">{{ handlingAlert.content }}</div>
+        <div class="kv"><span class="k">告警编号</span><span class="v">{{ handlingAlert.alert_code }}</span></div>
+        <div class="kv"><span class="k">告警时间</span><span class="v">{{ fmt.dateTime(handlingAlert.created_at) }}</span></div>
+        <div class="field"><label for="handleNoteInput">处置说明</label>
+          <textarea id="handleNoteInput" class="textarea" v-model="handleNote" placeholder="记录现场核查情况、处置措施与结果"></textarea>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn primary" style="flex:1;" @click="submitHandle('handling')">标记处理中</button>
+        <button class="btn" style="flex:1;" @click="submitHandle('resolved')"><span v-html="icon('check', 14)"></span><span>处置完成</span></button>
+        <button class="btn ghost" @click="submitHandle('ignored')">忽略</button>
+        <button class="btn ghost" @click="handlingAlert = null"><span v-html="icon('x', 14)"></span></button>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script src="/vendor/vue.global.prod.js"></script>
+<script src="/vendor/echarts.min.js"></script>
+<script src="/assets/core.js"></script>
+<script src="/assets/console.js"></script>
+</body>
+</html>

@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04101f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>移动巡护 · 深蓝智护 连江海洋生态智能监测平台</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  [v-cloak] { visibility: hidden; }
+
+  body.mobile-body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+    background:
+      radial-gradient(760px 420px at 50% -8%, rgba(23, 96, 152, 0.34), transparent 70%),
+      radial-gradient(520px 340px at 104% 4%, rgba(41, 231, 160, 0.1), transparent 72%),
+      linear-gradient(180deg, #04101f 0%, #020a15 100%);
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .m-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  /* 顶部 */
+  .m-top {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: calc(env(safe-area-inset-top) + 10px) 14px 10px;
+    border-bottom: 1px solid var(--line-soft);
+    background: linear-gradient(180deg, rgba(6, 26, 47, 0.96), rgba(4, 16, 31, 0.86));
+    backdrop-filter: blur(12px);
+  }
+  .m-top .m-logo { width: 32px; height: 32px; flex: none; border-radius: 8px; }
+  .m-top .m-logo svg { width: 17px; height: 17px; }
+  .m-title { min-width: 0; flex: 1; }
+  .m-title b { display: block; font-size: 15px; letter-spacing: 0.6px; color: #fff; }
+  .m-title i { display: block; font-style: normal; font-size: 11px; color: var(--text-dim); }
+  .m-net {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 26px;
+    padding: 0 9px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-soft);
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--panel-inset);
+  }
+  .m-net.online { color: var(--green); border-color: rgba(41, 231, 160, 0.32); background: rgba(41, 231, 160, 0.1); }
+  .m-net.offline { color: var(--red); border-color: rgba(255, 77, 109, 0.34); background: rgba(255, 77, 109, 0.1); }
+  .m-net .bdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* 主体 */
+  .m-main {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 12px calc(var(--m-tab-h) + env(safe-area-inset-bottom) + 20px);
+  }
+  .m-view { display: flex; flex-direction: column; gap: 12px; }
+
+  /* 通用卡片（本页专用，不复用桌面布局） */
+  .m-card {
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    background: linear-gradient(165deg, rgba(9, 36, 64, 0.66), rgba(4, 20, 36, 0.62));
+    box-shadow: var(--shadow-panel);
+    padding: 12px;
+    min-width: 0;
+  }
+  .m-card-head {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .m-card-head .m-sub { margin-left: auto; font-size: 11px; font-weight: 400; color: var(--text-mute); white-space: nowrap; }
+  .m-card-head svg { color: var(--cyan); }
+  .m-sec-title { font-size: 12px; color: var(--text-dim); font-weight: 600; margin: 2px 0 0; }
+
+  /* 触屏按钮 */
+  .m-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: rgba(51, 225, 255, 0.1);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+  }
+  .m-btn:active { background: rgba(51, 225, 255, 0.2); }
+  .m-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .m-btn.primary { background: linear-gradient(120deg, rgba(51, 225, 255, 0.3), rgba(41, 231, 160, 0.24)); border-color: var(--line-strong); font-weight: 650; }
+  .m-btn.ghost { background: transparent; }
+  .m-btn.sm { min-height: 36px; padding: 0 11px; font-size: 12.5px; }
+  .m-btn.wide { width: 100%; }
+  .m-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .m-btn-row > .m-btn { flex: 1 1 0; min-width: 0; }
+
+  .m-chips { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .m-chips::-webkit-scrollbar { display: none; }
+  .m-chip {
+    flex: none;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-soft);
+    background: var(--panel-inset);
+    color: var(--text-dim);
+    font-size: 12.5px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .m-chip.active { color: #04131f; background: linear-gradient(118deg, #86ecff, #45d8bf); border-color: transparent; font-weight: 700; }
+
+  .m-seg { display: flex; gap: 4px; padding: 4px; border-radius: var(--radius-sm); border: 1px solid var(--line-soft); background: var(--panel-inset); }
+  .m-seg button {
+    flex: 1;
+    min-height: 36px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .m-seg button.active { color: #04131f; background: linear-gradient(118deg, #86ecff, #45d8bf); font-weight: 700; }
+
+  .m-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .m-kpi {
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-sm);
+    background: linear-gradient(150deg, rgba(51, 225, 255, 0.09), rgba(4, 20, 36, 0.5));
+    padding: 10px;
+    min-width: 0;
+  }
+  .m-kpi .v { font-family: var(--font-mono); font-size: 21px; font-weight: 700; color: #fff; line-height: 1.15; }
+  .m-kpi .k { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
+  .m-kpi .s { font-size: 10.5px; color: var(--text-mute); margin-top: 1px; }
+
+  .m-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .m-metric {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-sm);
+    background: var(--panel-inset);
+    padding: 8px 9px;
+    min-width: 0;
+  }
+  .m-metric .mk { font-size: 11.5px; color: var(--text-dim); flex: none; }
+  .m-metric .mv { margin-left: auto; font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: #fff; white-space: nowrap; }
+  .m-metric .mu { font-size: 10px; color: var(--text-mute); }
+  .m-metric.ok { border-color: rgba(41, 231, 160, 0.28); }
+  .m-metric.warn { border-color: rgba(255, 209, 102, 0.34); background: rgba(255, 209, 102, 0.07); }
+  .m-metric.crit { border-color: rgba(255, 77, 109, 0.36); background: rgba(255, 77, 109, 0.08); }
+
+  .m-list { display: flex; flex-direction: column; gap: 9px; }
+  .m-item {
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    background: rgba(6, 26, 47, 0.62);
+    padding: 11px;
+    min-width: 0;
+  }
+  .m-item.tappable { cursor: pointer; }
+  .m-item.tappable:active { background: rgba(51, 225, 255, 0.08); }
+  .m-item-top { display: flex; align-items: flex-start; gap: 8px; }
+  .m-item-title { font-size: 13.5px; font-weight: 650; color: var(--text-strong); line-height: 1.35; min-width: 0; word-break: break-word; }
+  .m-item-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 6px; font-size: 11.5px; color: var(--text-dim); }
+  .m-item-body { margin-top: 7px; font-size: 12.5px; color: var(--text-dim); line-height: 1.55; word-break: break-word; }
+  .m-item-foot { display: flex; gap: 8px; margin-top: 10px; }
+  .m-item-foot > .m-btn { flex: 1 1 0; min-width: 0; }
+  .m-clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .m-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 5px; }
+  .lv-info { background: var(--cyan); box-shadow: 0 0 8px rgba(51, 225, 255, 0.6); }
+  .lv-warning { background: var(--yellow); box-shadow: 0 0 8px rgba(255, 209, 102, 0.6); }
+  .lv-critical { background: var(--red); box-shadow: 0 0 8px rgba(255, 77, 109, 0.6); }
+
+  .m-rows { display: flex; flex-direction: column; }
+  .m-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed rgba(51, 225, 255, 0.1); font-size: 12.5px; }
+  .m-row:last-child { border-bottom: none; }
+  .m-row .rk { color: var(--text-dim); flex: none; }
+  .m-row .rv { margin-left: auto; color: #fff; text-align: right; font-family: var(--font-mono); word-break: break-word; }
+  .m-row .rv.txt { font-family: var(--font-sans); }
+
+  .m-empty { padding: 26px 10px; text-align: center; color: var(--text-mute); font-size: 12.5px; }
+  .m-loading { padding: 18px; text-align: center; color: var(--text-dim); font-size: 12.5px; }
+
+  /* 识别 */
+  .m-shoot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 132px;
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    background: radial-gradient(300px 160px at 50% 0%, rgba(51, 225, 255, 0.12), transparent 70%), var(--panel-inset);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 18px;
+  }
+  .m-shoot:active { background: rgba(51, 225, 255, 0.12); }
+  .m-shoot .big { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line-strong); color: var(--cyan); background: rgba(51, 225, 255, 0.12); }
+  .m-shoot .hint { font-size: 11px; color: var(--text-mute); }
+  .m-shot { position: relative; }
+  .m-shot img { display: block; width: 100%; border-radius: var(--radius); border: 1px solid var(--line-soft); background: #02101c; }
+  .m-shot .m-shot-tag {
+    position: absolute; left: 8px; top: 8px;
+    padding: 2px 8px; border-radius: var(--radius-pill);
+    font-size: 10.5px; color: #04131f; background: rgba(134, 236, 255, 0.9); font-weight: 700;
+  }
+  .m-hits { display: flex; flex-direction: column; gap: 6px; margin-top: 9px; }
+  .m-hit { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--line-soft); background: var(--panel-inset); font-size: 12.5px; }
+  .m-hit .hn { color: #fff; font-weight: 600; }
+  .m-hit .hc { margin-left: auto; font-family: var(--font-mono); color: var(--green); }
+
+  /* 底部标签 */
+  .m-tabbar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch;
+    padding: 6px 4px calc(env(safe-area-inset-bottom) + 6px);
+    border-top: 1px solid var(--line-soft);
+    background: linear-gradient(180deg, rgba(5, 22, 40, 0.94), rgba(3, 14, 27, 0.98));
+    backdrop-filter: blur(14px);
+  }
+  .m-tab {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 50px;
+    border: none;
+    background: transparent;
+    color: var(--text-mute);
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    cursor: pointer;
+  }
+  .m-tab.active { color: var(--cyan); }
+  .m-tab.active::before { content: ""; position: absolute; top: -6px; width: 26px; height: 2px; border-radius: 2px; background: var(--cyan); box-shadow: var(--glow-cyan); }
+  .m-tab .m-tab-badge {
+    position: absolute; top: 2px; right: 50%; transform: translateX(16px);
+    min-width: 16px; height: 16px; padding: 0 4px;
+    border-radius: var(--radius-pill);
+    background: var(--red); color: #fff;
+    font-size: 10px; line-height: 16px; text-align: center;
+    font-family: var(--font-mono);
+  }
+
+  /* 底部弹层 */
+  .m-sheet-mask {
+    position: fixed; inset: 0; z-index: 120;
+    background: rgba(2, 10, 21, 0.72);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: flex-end;
+  }
+  .m-sheet {
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+    border-radius: 14px 14px 0 0;
+    border: 1px solid var(--line);
+    border-bottom: none;
+    background: rgba(8, 30, 53, 0.98);
+    box-shadow: 0 -14px 40px rgba(0, 6, 16, 0.6);
+    padding: 14px 14px calc(env(safe-area-inset-bottom) + 16px);
+  }
+  .m-sheet-head { display: flex; align-items: center; gap: 8px; padding-bottom: 11px; border-bottom: 1px solid var(--line-soft); margin-bottom: 12px; }
+  .m-sheet-head .t { font-size: 14.5px; font-weight: 700; color: #fff; min-width: 0; }
+  .m-sheet-head .x { margin-left: auto; flex: none; width: 34px; height: 34px; border-radius: var(--radius-sm); border: 1px solid var(--line-soft); background: transparent; color: var(--text-dim); display: grid; place-items: center; cursor: pointer; }
+  .m-form { display: flex; flex-direction: column; gap: 11px; }
+  .m-form .field > label { font-size: 12px; }
+  .m-form .input, .m-form .select, .m-form .textarea { min-height: 42px; font-size: 14px; }
+  .m-form .textarea { min-height: 76px; }
+  .m-note { font-size: 11.5px; color: var(--text-mute); line-height: 1.6; }
+
+  .m-check { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: 12.5px; color: var(--text-dim); }
+  .m-check input { width: 18px; height: 18px; accent-color: #33e1ff; }
+
+  .m-qa { border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: var(--panel-inset); padding: 10px; font-size: 12.5px; line-height: 1.65; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+  .m-qa.pending { color: var(--text-dim); }
+  .m-tools { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+  @media (max-width: 359px) {
+    .m-metrics { grid-template-columns: 1fr; }
+    .m-kpis { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body class="mobile-body">
+
+<div id="mobile" v-cloak>
+
+  <!-- 登录 -->
+  <div v-if="!logged" class="login-shell">
+    <form class="login-card" @submit.prevent="doLogin">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+        <div class="brand-mark" v-html="icon('waves', 20)"></div>
+        <div>
+          <div style="font-size:18px;font-weight:800;letter-spacing:1.4px;color:#fff;">深蓝智护</div>
+          <div style="font-size:11.5px;color:var(--text-dim);">移动巡护端 · 现场执行</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:13px;">
+        <div class="field">
+          <label for="mUser">账号</label>
+          <input id="mUser" class="input" v-model="loginForm.username" autocomplete="username" placeholder="请输入账号" style="min-height:42px;">
+        </div>
+        <div class="field">
+          <label for="mPass">密码</label>
+          <input id="mPass" class="input" type="password" v-model="loginForm.password" autocomplete="current-password" placeholder="请输入密码" style="min-height:42px;">
+        </div>
+        <div v-if="loginForm.error" class="notice crit">{{ loginForm.error }}</div>
+        <button class="m-btn primary wide" type="submit" :disabled="loginForm.busy">
+          <span v-html="icon('lock', 16)"></span>
+          <span>{{ loginForm.busy ? '登录中…' : '登录移动巡护端' }}</span>
+        </button>
+      </div>
+      <div class="hr" style="margin:16px 0 10px;"></div>
+      <div style="font-size:11.5px;color:var(--text-mute);line-height:1.8;">
+        演示账号：<span class="mono" style="color:var(--text-dim);">admin / deepblue@2026</span><br>
+        技术员：<span class="mono" style="color:var(--text-dim);">operator / ocean@2026</span>
+      </div>
+    </form>
+  </div>
+
+  <!-- 移动端主界面 -->
+  <div v-else class="m-shell">
+    <header class="m-top">
+      <div class="brand-mark m-logo" v-html="icon('waves', 17)"></div>
+      <div class="m-title">
+        <b>深蓝智护 · 移动巡护</b>
+        <i>{{ user ? user.display_name : '' }} · {{ roleLabel(user && user.role) }} · 连江海洋生态监测</i>
+      </div>
+      <div class="m-net" :class="netClass">
+        <span class="bdot"></span>
+        <span>{{ netText }}</span>
+      </div>
+    </header>
+
+    <main class="m-main" ref="mainRef">
+      <!-- 首页 -->
+      <section v-show="tab === 'home'" class="m-view">
+        <div class="m-card">
+          <div class="m-card-head">
+            <span v-html="icon('map', 15)"></span>
+            <span>我的片区</span>
+            <span class="m-sub">{{ regionLabel }}</span>
+          </div>
+          <div class="m-chips">
+            <button v-for="r in regions" :key="r.code" type="button" class="m-chip"
+                    :class="{ active: activeRegion === r.code }" @click="selectRegion(r.code)">{{ r.name }}</button>
+          </div>
+          <div v-if="latestReading" style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="tag ok" v-if="latestReading.status === 'online'">在线</span>
+            <span class="tag mute" v-else>{{ latestReading.status }}</span>
+            <span style="font-size:12px;color:var(--text-dim);min-width:0;word-break:break-word;">{{ latestReading.device_name }}</span>
+            <span class="mono" style="margin-left:auto;font-size:11.5px;color:var(--text-mute);">{{ fmt.age(latestReading.age_seconds) }}</span>
+          </div>
+          <div v-if="latestReading" class="m-metrics" style="margin-top:10px;">
+            <div v-for="m in latestMetrics" :key="m.key" class="m-metric" :class="m.state">
+              <span class="mk">{{ m.label }}</span>
+              <span class="mv">{{ m.value }}</span>
+              <span class="mu">{{ m.unit }}</span>
+            </div>
+          </div>
+          <div v-else class="m-loading">正在读取片区实时数据…</div>
+        </div>
+
+        <div class="m-kpis">
+          <div class="m-kpi">
+            <div class="v">{{ overview ? overview.device_online + ' / ' + overview.device_total : '--' }}</div>
+            <div class="k">在线设备</div>
+            <div class="s">在线率 {{ overview ? fmt.pct(overview.online_rate, 1) : '--' }}</div>
+          </div>
+          <div class="m-kpi">
+            <div class="v" :style="{ color: overview ? overview.risk_color : '' }">{{ overview ? overview.risk_label : '--' }}</div>
+            <div class="k">全区赤潮风险</div>
+            <div class="s">{{ overview ? overview.risk_name : '' }}</div>
+          </div>
+          <div class="m-kpi">
+            <div class="v">{{ patrolSum ? patrolSum.open : '--' }}</div>
+            <div class="k">待办巡护任务</div>
+            <div class="s">待领取 {{ patrolSum ? patrolSum.pending : '--' }} · 进行中 {{ patrolSum ? patrolSum.working : '--' }}</div>
+          </div>
+          <div class="m-kpi">
+            <div class="v" :style="{ color: overview && overview.pending_alerts > 0 ? 'var(--yellow)' : 'var(--green)' }">{{ overview ? overview.pending_alerts : '--' }}</div>
+            <div class="k">待处置告警</div>
+            <div class="s">近 24 小时新增 {{ overview ? overview.critical_24h : '--' }}</div>
+          </div>
+        </div>
+
+        <div class="m-card">
+          <div class="m-card-head">
+            <span v-html="icon('gauge', 15)"></span>
+            <span>赤潮风险 · 区域排行</span>
+            <span class="m-sub">48 小时预测</span>
+          </div>
+          <div v-if="riskRegions.length" class="m-rows">
+            <div v-for="r in riskRegions" :key="r.region_code" class="m-row">
+              <span class="m-dot" :style="{ background: r.color, boxShadow: '0 0 8px ' + r.color }"></span>
+              <span class="rk">{{ r.region_name }}</span>
+              <span class="rv">
+                {{ r.level_label }} · {{ fmt.pct(r.max_probability * 100, 1) }}
+              </span>
+            </div>
+          </div>
+          <div v-else class="m-empty">暂无预测数据</div>
+        </div>
+
+        <div class="m-card">
+          <div class="m-card-head"><span v-html="icon('play', 15)"></span><span>现场快捷操作</span></div>
+          <div class="m-btn-row">
+            <button class="m-btn primary" type="button" @click="switchTab('patrol')"><span v-html="icon('list', 15)"></span><span>巡护任务</span></button>
+            <button class="m-btn" type="button" @click="switchTab('detect')"><span v-html="icon('camera', 15)"></span><span>拍照识别</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 巡护 -->
+      <section v-show="tab === 'patrol'" class="m-view">
+        <div class="m-card">
+          <div class="m-card-head">
+            <span v-html="icon('list', 15)"></span>
+            <span>巡护任务</span>
+            <span class="m-sub">移动端执行 · 图片存证</span>
+          </div>
+          <div class="m-kpis" v-if="patrolSum">
+            <div class="m-kpi"><div class="v">{{ patrolSum.pending }}</div><div class="k">待领取</div><div class="s">可领取执行</div></div>
+            <div class="m-kpi"><div class="v">{{ patrolSum.working }}</div><div class="k">进行中</div><div class="s">现场处置中</div></div>
+            <div class="m-kpi"><div class="v">{{ patrolSum.done }}</div><div class="k">已完成</div><div class="s">完成率 {{ fmt.pct(patrolSum.done_rate, 1) }}</div></div>
+            <div class="m-kpi"><div class="v">{{ patrolSum.detections }}</div><div class="k">识别目标</div><div class="s">现场证据条目</div></div>
+          </div>
+          <div v-else class="m-loading">正在加载任务统计…</div>
+          <div class="m-btn-row" style="margin-top:10px;">
+            <button class="m-btn sm ghost" type="button" @click="loadPatrol(true)"><span v-html="icon('refresh', 14)"></span><span>刷新</span></button>
+            <button v-if="isTechnician" class="m-btn sm" type="button" @click="dispatchOpen = !dispatchOpen">
+              <span v-html="icon('plus', 14)"></span><span>{{ dispatchOpen ? '收起派单' : '快速派单' }}</span>
+            </button>
+          </div>
+
+          <div v-if="dispatchOpen && isTechnician" class="m-form" style="margin-top:11px;border-top:1px solid var(--line-soft);padding-top:11px;">
+            <div class="field"><label>任务标题</label><input class="input" v-model="dispatchForm.title" placeholder="例如：东洛岛岸线海漂垃圾巡查"></div>
+            <div class="field"><label>片区</label>
+              <select class="select" v-model="dispatchForm.region_code">
+                <option value="">不指定</option>
+                <option v-for="r in regions" :key="r.code" :value="r.code">{{ r.name }}</option>
+              </select>
+            </div>
+            <div class="field"><label>优先级</label>
+              <select class="select" v-model="dispatchForm.priority">
+                <option value="normal">常规</option>
+                <option value="high">优先</option>
+                <option value="urgent">紧急</option>
+              </select>
+            </div>
+            <div class="field"><label>任务说明</label><textarea class="textarea" v-model="dispatchForm.detail" placeholder="现场需要检查的内容与要求"></textarea></div>
+            <button class="m-btn primary wide" type="button" :disabled="dispatchBusy" @click="createTask">
+              <span v-html="icon('plus', 15)"></span><span>{{ dispatchBusy ? '派发中…' : '派发任务' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="m-seg">
+          <button v-for="f in patrolFilters" :key="f.key" type="button" :class="{ active: patrolFilter === f.key }" @click="patrolFilter = f.key">{{ f.label }}</button>
+        </div>
+
+        <div v-if="patrolBusy && !tasks.length" class="m-loading">正在加载巡护任务…</div>
+        <div v-else-if="!filteredTasks.length" class="m-empty">当前筛选下暂无任务</div>
+        <div v-else class="m-list">
+          <div v-for="t in filteredTasks" :key="t.task_code" class="m-item">
+            <div class="m-item-top">
+              <span class="m-dot" :style="{ background: priorityColor(t.priority), boxShadow: '0 0 8px ' + priorityColor(t.priority) }"></span>
+              <div style="min-width:0;flex:1;">
+                <div class="m-item-title">{{ t.title }}</div>
+                <div class="m-item-meta">
+                  <span class="tag" :class="priorityTag(t.priority)">{{ t.priority_label }}</span>
+                  <span class="tag mute">{{ t.status_label }}</span>
+                  <span class="mono">{{ t.task_code }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="m-item-body">
+              <div v-if="t.region_name">片区：{{ t.region_name }}</div>
+              <div v-if="t.detail" class="m-clamp2">{{ t.detail }}</div>
+              <div v-if="t.due_at" style="color:var(--text-mute);font-size:11.5px;margin-top:3px;">截止 {{ fmt.dateTime(t.due_at) }}</div>
+              <div v-if="t.detection_count" style="color:var(--green);font-size:11.5px;margin-top:3px;">已存证识别目标 {{ t.detection_count }} 个</div>
+            </div>
+            <div class="m-item-foot">
+              <button v-if="t.status === 'pending'" class="m-btn primary sm" type="button" :disabled="actingCode === t.task_code" @click="claimTask(t)">
+                <span v-html="icon('check', 14)"></span><span>{{ actingCode === t.task_code ? '领取中…' : '领取任务' }}</span>
+              </button>
+              <button v-if="t.status === 'working'" class="m-btn primary sm" type="button" @click="openSubmit(t)">
+                <span v-html="icon('camera', 14)"></span><span>现场上报</span>
+              </button>
+              <button class="m-btn sm ghost" type="button" @click="openTaskDetail(t)"><span v-html="icon('search', 14)"></span><span>详情</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 识别 -->
+      <section v-show="tab === 'detect'" class="m-view">
+        <div class="m-card">
+          <div class="m-card-head">
+            <span v-html="icon('camera', 15)"></span>
+            <span>拍照即识别</span>
+            <span class="m-sub">海漂垃圾检测</span>
+          </div>
+          <input ref="fileRef" type="file" accept="image/*" capture="environment" style="display:none" @change="onPickFile">
+          <button class="m-shoot" type="button" @click="pickFile" :disabled="detectBusy">
+            <span class="big" v-html="icon('camera', 22)"></span>
+            <span>{{ detectBusy ? '模型识别中…' : '拍照 / 从相册选择' }}</span>
+            <span class="hint">图片在本机压缩后上传，识别结果来自真实模型推理</span>
+          </button>
+          <div class="field" style="margin-top:11px;">
+            <label>关联监测点位</label>
+            <select class="select" v-model="detectDevice">
+              <option value="">不关联点位</option>
+              <option v-for="d in devices" :key="d.device_code" :value="d.device_code">{{ d.name }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div v-if="detectError" class="notice crit">{{ detectError }}</div>
+
+        <div v-if="detectResult" class="m-card">
+          <div class="m-card-head">
+            <span v-html="icon('target', 15)"></span>
+            <span>识别结果</span>
+            <span class="m-sub mono">{{ detectResult.inference ? detectResult.inference.model : '' }}</span>
+          </div>
+          <div class="m-shot">
+            <span class="m-shot-tag">{{ detectResult.has_focus ? '检出目标' : '未检出目标' }}</span>
+            <img :src="detectImage" alt="识别画面">
+          </div>
+          <div class="m-rows" style="margin-top:9px;">
+            <div class="m-row"><span class="rk">目标数量</span><span class="rv">{{ detectResult.total }}</span></div>
+            <div class="m-row"><span class="rk">推理耗时</span><span class="rv">{{ fmt.num(detectResult.elapsed_ms, 0) }} ms</span></div>
+            <div class="m-row"><span class="rk">推理设备</span><span class="rv txt">{{ detectResult.inference ? detectResult.inference.device_name : '--' }}</span></div>
+          </div>
+          <div v-if="detectResult.focus_summary" class="notice" :class="detectResult.has_focus ? 'warn' : 'ok'" style="margin-top:9px;">
+            {{ detectResult.focus_summary }}
+          </div>
+          <div v-if="detectResult.focus_hits && detectResult.focus_hits.length" class="m-hits">
+            <div v-for="(h, i) in detectResult.focus_hits" :key="i" class="m-hit">
+              <span class="hn">{{ h.label || h.name }}</span>
+              <span class="tag mute">{{ h.category }}</span>
+              <span class="hc">{{ fmt.pct(h.confidence * 100, 1) }}</span>
+            </div>
+          </div>
+          <div v-if="detectResult.sample" class="m-note" style="margin-top:9px;">
+            样本来源：{{ detectResult.sample.source }} · {{ detectResult.sample.title }}
+          </div>
+          <div class="m-btn-row" style="margin-top:11px;">
+            <button v-if="isTechnician" class="m-btn sm" type="button" :disabled="toAlertBusy || !detectResult.has_focus" @click="detectToAlert">
+              <span v-html="icon('bell', 14)"></span><span>{{ toAlertBusy ? '生成中…' : '转为告警' }}</span>
+            </button>
+            <button class="m-btn sm ghost" type="button" @click="pickFile"><span v-html="icon('refresh', 14)"></span><span>重新识别</span></button>
+          </div>
+        </div>
+
+        <div class="m-card">
+          <div class="m-card-head">
+            <span v-html="icon('layers', 15)"></span>
+            <span>内置演示样本</span>
+            <span class="m-sub">公开数据集</span>
+          </div>
+          <div class="m-chips">
+            <button v-for="s in samples" :key="s.name" type="button" class="m-chip" :class="{ active: activeSample === s.name }"
+                    :disabled="detectBusy" @click="detectSample(s.name)">{{ s.title }}</button>
+          </div>
+          <div v-if="!samples.length" class="m-empty">样本清单加载中</div>
+        </div>
+      </section>
+
+      <!-- 告警 -->
+      <section v-show="tab === 'alerts'" class="m-view">
+        <div class="m-card">
+          <div class="m-card-head">
+            <span v-html="icon('bell', 15)"></span>
+            <span>告警处置</span>
+            <span class="m-sub">近 72 小时</span>
+          </div>
+          <div class="m-kpis" v-if="alertStats">
+            <div class="m-kpi"><div class="v">{{ alertStats.pending }}</div><div class="k">待处置</div><div class="s">需现场核查或处置</div></div>
+            <div class="m-kpi"><div class="v">{{ alertStats.resolved }}</div><div class="k">已处置</div><div class="s">窗口内完成</div></div>
+          </div>
+          <div v-else class="m-loading">正在加载告警统计…</div>
+        </div>
+
+        <div class="m-seg">
+          <button type="button" :class="{ active: alertTab === 'pending' }" @click="switchAlertTab('pending')">待处置</button>
+          <button type="button" :class="{ active: alertTab === 'resolved' }" @click="switchAlertTab('resolved')">已处置</button>
+        </div>
+
+        <div v-if="alertBusy && !alerts.length" class="m-loading">正在加载告警…</div>
+        <div v-else-if="!alerts.length" class="m-empty">当前没有{{ alertTab === 'pending' ? '待处置' : '已处置' }}告警</div>
+        <div v-else class="m-list">
+          <div v-for="a in alerts" :key="a.id" class="m-item tappable" @click="openAlert(a)">
+            <div class="m-item-top">
+              <span class="m-dot" :class="'lv-' + a.level"></span>
+              <div style="min-width:0;flex:1;">
+                <div class="m-item-title">{{ a.title }}</div>
+                <div class="m-item-meta">
+                  <span class="tag" :class="levelTag(a.level)">{{ a.level_label }}</span>
+                  <span class="tag mute">{{ a.type_label }}</span>
+                  <span class="mono">{{ fmt.dateTime(a.created_at) }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="m-item-body m-clamp2">{{ a.content }}</div>
+            <div class="m-item-meta" v-if="a.region_name"><span v-html="icon('map', 12)"></span><span>{{ a.region_name }}</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 我的 -->
+      <section v-show="tab === 'profile'" class="m-view">
+        <div class="m-card">
+          <div class="m-card-head"><span v-html="icon('user', 15)"></span><span>账号信息</span></div>
+          <div class="m-rows">
+            <div class="m-row"><span class="rk">姓名</span><span class="rv txt">{{ user ? user.display_name : '--' }}</span></div>
+            <div class="m-row"><span class="rk">账号</span><span class="rv">{{ user ? user.username : '--' }}</span></div>
+            <div class="m-row"><span class="rk">角色</span><span class="rv txt">{{ roleLabel(user && user.role) }}</span></div>
+            <div class="m-row"><span class="rk">可执行操作</span><span class="rv txt">{{ isTechnician ? '巡护派单 · 告警处置 · 现场识别' : '现场识别 · 查看告警' }}</span></div>
+          </div>
+        </div>
+
+        <div class="m-card">
+          <div class="m-card-head">
+            <span v-html="icon('radio', 15)"></span>
+            <span>语音问数</span>
+            <span class="m-sub">单路播报 · 不重叠</span>
+          </div>
+          <div class="field">
+            <label>想问什么</label>
+            <input id="mAsk" class="input" v-model="askText" placeholder="例如：定海湾现在水质怎么样" @keyup.enter="askAgent">
+          </div>
+          <div class="m-btn-row" style="margin-top:10px;">
+            <button class="m-btn primary" type="button" :disabled="asking" @click="askAgent">
+              <span v-html="icon('search', 15)"></span><span>{{ asking ? '思考中…' : '提问' }}</span>
+            </button>
+            <button v-if="speechSupported" class="m-btn" type="button" :disabled="asking || listening" @click="toggleListen">
+              <span v-html="icon('radio', 15)"></span><span>{{ listening ? '聆听中…' : '语音提问' }}</span>
+            </button>
+          </div>
+          <div v-if="answer" class="m-qa" style="margin-top:11px;">{{ answer }}</div>
+          <div v-else class="m-note" style="margin-top:9px;">点击提问后，答案会在此显示；开启播报时只朗读最新一条，不重复、不叠加。</div>
+          <div v-if="answerTools.length" class="m-tools">
+            <span v-for="t in answerTools" :key="t.name" class="tag" :class="t.ok ? 'ok' : 'mute'">{{ t.label }}</span>
+          </div>
+          <div v-if="answer" class="m-check" style="margin-top:6px;">
+            <input id="speakToggle" type="checkbox" v-model="speakEnabled" @change="onSpeakToggle">
+            <label for="speakToggle" style="margin:0;">朗读最新回答</label>
+            <button v-if="speaking" class="m-btn sm ghost" type="button" @click="stopSpeak" style="margin-left:auto;">停止朗读</button>
+          </div>
+        </div>
+
+        <div class="m-card">
+          <div class="m-card-head"><span v-html="icon('server', 15)"></span><span>系统状态</span></div>
+          <div class="m-rows">
+            <div class="m-row"><span class="rk">视觉推理节点</span><span class="rv txt" :style="{ color: visionStatus && visionStatus.online ? 'var(--green)' : 'var(--yellow)' }">{{ visionStatus ? (visionStatus.online ? '在线 · ' + visionStatus.device_name : '离线') : '--' }}</span></div>
+            <div class="m-row"><span class="rk">识别权重</span><span class="rv txt">{{ visionStatus ? visionStatus.model : '--' }}</span></div>
+            <div class="m-row"><span class="rk">问数模型</span><span class="rv txt">{{ agentStatus ? agentStatus.provider + ' · ' + agentStatus.model : '--' }}</span></div>
+            <div class="m-row"><span class="rk">数据源</span><span class="rv txt">实时监测数据 · 仿真补足标注来源</span></div>
+          </div>
+        </div>
+
+        <div class="m-card">
+          <div class="m-btn-row">
+            <a class="m-btn" href="/console.html"><span v-html="icon('layout', 15)"></span><span>桌面管理后台</span></a>
+            <a class="m-btn" href="/"><span v-html="icon('map', 15)"></span><span>可视化大屏</span></a>
+          </div>
+          <button class="m-btn wide ghost" type="button" style="margin-top:9px;" @click="logout">
+            <span v-html="icon('logout', 15)"></span><span>退出登录</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <nav class="m-tabbar">
+      <button v-for="t in TABS" :key="t.key" type="button" class="m-tab" :class="{ active: tab === t.key }"
+              :aria-current="tab === t.key ? 'page' : undefined" @click="switchTab(t.key)">
+        <span v-html="icon(t.icon, 20)"></span>
+        <span>{{ t.label }}</span>
+        <span v-if="t.key === 'alerts' && alertStats && alertStats.pending" class="m-tab-badge">{{ alertStats.pending > 99 ? '99+' : alertStats.pending }}</span>
+        <span v-else-if="t.key === 'patrol' && patrolSum && patrolSum.open" class="m-tab-badge">{{ patrolSum.open > 99 ? '99+' : patrolSum.open }}</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- 现场上报弹层 -->
+  <div v-if="submitTask" class="m-sheet-mask" @click.self="closeSubmit">
+    <div class="m-sheet">
+      <div class="m-sheet-head">
+        <span v-html="icon('camera', 16)" style="color:var(--cyan);"></span>
+        <span class="t">现场上报 · {{ submitTask.title }}</span>
+        <button class="x" type="button" @click="closeSubmit" v-html="icon('x', 16)"></button>
+      </div>
+      <div class="m-form">
+        <div class="m-rows">
+          <div class="m-row"><span class="rk">任务编号</span><span class="rv">{{ submitTask.task_code }}</span></div>
+          <div class="m-row"><span class="rk">片区</span><span class="rv txt">{{ submitTask.region_name || '未指定' }}</span></div>
+        </div>
+
+        <input ref="evidenceRef" type="file" accept="image/*" capture="environment" style="display:none" @change="onPickEvidence">
+        <button class="m-btn wide" type="button" :disabled="evidenceBusy" @click="pickEvidence">
+          <span v-html="icon('camera', 15)"></span>
+          <span>{{ evidenceBusy ? '识别中…' : (evidence ? '重新拍照识别' : '拍照并识别现场情况') }}</span>
+        </button>
+        <div v-if="evidenceError" class="notice crit">{{ evidenceError }}</div>
+        <div v-if="evidence" class="m-card" style="padding:9px;">
+          <div class="m-shot"><img :src="evidence.preview" alt="现场照片"></div>
+          <div class="m-rows" style="margin-top:7px;">
+            <div class="m-row"><span class="rk">图片指纹</span><span class="rv">{{ evidence.sha256.slice(0, 16) }}…</span></div>
+            <div class="m-row"><span class="rk">识别目标</span><span class="rv">{{ evidence.detections.length }}</span></div>
+          </div>
+          <div v-if="evidence.summary" class="m-note" style="margin-top:5px;">{{ evidence.summary }}</div>
+        </div>
+
+        <div class="field">
+          <label>到场定位</label>
+          <div style="display:flex;gap:8px;">
+            <input class="input" :value="locationText" readonly placeholder="未获取定位">
+            <button class="m-btn sm" type="button" style="flex:none;" :disabled="geoBusy" @click="locate">{{ geoBusy ? '定位中…' : '定位' }}</button>
+          </div>
+          <div class="m-note">{{ geoNote }}</div>
+        </div>
+        <div class="field"><label for="mLocNote">位置说明</label><input id="mLocNote" class="input" v-model="submitForm.location_note" placeholder="例如：东洛岛西南侧岸线"></div>
+        <div class="field"><label for="mResult">现场情况</label><textarea id="mResult" class="textarea" v-model="submitForm.result_note" placeholder="描述现场发现、处置动作与结论"></textarea></div>
+        <div class="m-check">
+          <input id="mkAlert" type="checkbox" v-model="submitForm.create_alert" :disabled="!submitTask.device_code || !evidence || !evidence.detections.length">
+          <label for="mkAlert" style="margin:0;">发现目标时同时生成平台告警</label>
+        </div>
+        <button class="m-btn primary wide" type="button" :disabled="submitBusy" @click="submitPatrol">
+          <span v-html="icon('shield', 15)"></span><span>{{ submitBusy ? '提交中…' : '提交现场记录（生成存证指纹）' }}</span>
+        </button>
+        <div class="m-note">提交后平台会对「任务、执行人、时间、定位、识别结果」生成 SHA-256 存证指纹，写入审计日志。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 告警处置弹层 -->
+  <div v-if="activeAlert" class="m-sheet-mask" @click.self="closeAlert">
+    <div class="m-sheet">
+      <div class="m-sheet-head">
+        <span v-html="icon('bell', 16)" style="color:var(--cyan);"></span>
+        <span class="t">告警详情</span>
+        <button class="x" type="button" @click="closeAlert" v-html="icon('x', 16)"></button>
+      </div>
+      <div class="m-form">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+          <span class="tag" :class="levelTag(activeAlert.level)">{{ activeAlert.level_label }}</span>
+          <span class="tag mute">{{ activeAlert.type_label }}</span>
+          <span class="mono" style="font-size:11.5px;color:var(--text-mute);">{{ activeAlert.alert_code }}</span>
+        </div>
+        <div style="font-size:15px;font-weight:700;color:#fff;">{{ activeAlert.title }}</div>
+        <div class="m-qa">{{ activeAlert.content }}</div>
+        <div class="m-rows">
+          <div class="m-row"><span class="rk">片区</span><span class="rv txt">{{ activeAlert.region_name || '--' }}</span></div>
+          <div class="m-row"><span class="rk">设备</span><span class="rv">{{ activeAlert.device_code || '--' }}</span></div>
+          <div class="m-row" v-if="activeAlert.metric_label"><span class="rk">{{ activeAlert.metric_label }}</span><span class="rv">{{ activeAlert.value }} / 阈值 {{ activeAlert.threshold }}</span></div>
+          <div class="m-row"><span class="rk">发生时间</span><span class="rv">{{ fmt.dateTime(activeAlert.created_at) }}</span></div>
+          <div class="m-row" v-if="activeAlert.handler"><span class="rk">处置人</span><span class="rv txt">{{ activeAlert.handler }}</span></div>
+          <div class="m-row" v-if="activeAlert.handle_note"><span class="rk">处置意见</span><span class="rv txt">{{ activeAlert.handle_note }}</span></div>
+        </div>
+        <template v-if="activeAlert.status === 'pending' || activeAlert.status === 'handling'">
+          <div class="field"><label>处置意见</label><textarea class="textarea" v-model="handleNote" placeholder="填写核查情况与处置结果"></textarea></div>
+          <button class="m-btn primary wide" type="button" :disabled="handleBusy" @click="resolveAlert">
+            <span v-html="icon('check', 15)"></span><span>{{ handleBusy ? '提交中…' : '处置完成' }}</span>
+          </button>
+          <button v-if="isTechnician" class="m-btn wide ghost" type="button" :disabled="handleBusy" @click="alertToTask">
+            <span v-html="icon('plus', 15)"></span><span>转为巡护任务</span>
+          </button>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- 任务详情弹层 -->
+  <div v-if="detailTask" class="m-sheet-mask" @click.self="detailTask = null">
+    <div class="m-sheet">
+      <div class="m-sheet-head">
+        <span v-html="icon('file', 16)" style="color:var(--cyan);"></span>
+        <span class="t">任务详情</span>
+        <button class="x" type="button" @click="detailTask = null" v-html="icon('x', 16)"></button>
+      </div>
+      <div class="m-rows">
+        <div class="m-row"><span class="rk">标题</span><span class="rv txt">{{ detailTask.title }}</span></div>
+        <div class="m-row"><span class="rk">编号</span><span class="rv">{{ detailTask.task_code }}</span></div>
+        <div class="m-row"><span class="rk">状态</span><span class="rv txt">{{ detailTask.status_label }}</span></div>
+        <div class="m-row"><span class="rk">优先级</span><span class="rv txt">{{ detailTask.priority_label }}</span></div>
+        <div class="m-row"><span class="rk">片区</span><span class="rv txt">{{ detailTask.region_name || '--' }}</span></div>
+        <div class="m-row"><span class="rk">派发人</span><span class="rv txt">{{ detailTask.created_by || '--' }}</span></div>
+        <div class="m-row"><span class="rk">执行人</span><span class="rv txt">{{ detailTask.assignee || '待领取' }}</span></div>
+        <div class="m-row" v-if="detailTask.started_at"><span class="rk">开始时间</span><span class="rv">{{ fmt.dateTime(detailTask.started_at) }}</span></div>
+        <div class="m-row" v-if="detailTask.finished_at"><span class="rk">完成时间</span><span class="rv">{{ fmt.dateTime(detailTask.finished_at) }}</span></div>
+        <div class="m-row" v-if="detailTask.location_note"><span class="rk">位置</span><span class="rv txt">{{ detailTask.location_note }}</span></div>
+        <div class="m-row" v-if="detailTask.result_note"><span class="rk">现场情况</span><span class="rv txt">{{ detailTask.result_note }}</span></div>
+        <div class="m-row" v-if="detailTask.digest"><span class="rk">存证指纹</span><span class="rv">{{ detailTask.digest.slice(0, 24) }}…</span></div>
+      </div>
+      <div v-if="detailTask.status === 'working'" class="m-btn-row" style="margin-top:12px;">
+        <button class="m-btn primary" type="button" @click="openSubmit(detailTask)"><span v-html="icon('camera', 15)"></span><span>现场上报</span></button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/vendor/vue.global.prod.js"></script>
+<script src="/assets/core.js"></script>
+<script src="/assets/mobile.js"></script>
+</body>
+</html>

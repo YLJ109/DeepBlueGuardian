@@ -1,0 +1,266 @@
+{
+  "name": "red_tide",
+  "version": "v1",
+  "trained_at": "2026-10-06T04:12:28",
+  "thresholds": [
+    0.25,
+    0.5,
+    0.75
+  ],
+  "algorithm": "GradientBoostingClassifier + StandardScaler",
+  "window_hours": 24,
+  "horizon_hours": 48,
+  "labeling": {
+    "basis": "福建省海洋预报台赤潮监测预警信息的叶绿素a浓度口径",
+    "breaks_ug_per_l": [
+      5.0,
+      10.0,
+      20.0
+    ],
+    "description": "未来 48 小时叶绿素a峰值 <5 / 5-10 / 10-20 / >=20 μg/L 对应 Ⅰ/Ⅱ/Ⅲ/Ⅳ 级"
+  },
+  "features": {
+    "count": 49,
+    "names": [
+      "water_temp_mean",
+      "water_temp_std",
+      "water_temp_last",
+      "water_temp_delta",
+      "water_temp_min",
+      "water_temp_max",
+      "ph_mean",
+      "ph_std",
+      "ph_last",
+      "ph_delta",
+      "ph_min",
+      "ph_max",
+      "dissolved_oxygen_mean",
+      "dissolved_oxygen_std",
+      "dissolved_oxygen_last",
+      "dissolved_oxygen_delta",
+      "dissolved_oxygen_min",
+      "dissolved_oxygen_max",
+      "turbidity_mean",
+      "turbidity_std",
+      "turbidity_last",
+      "turbidity_delta",
+      "turbidity_min",
+      "turbidity_max",
+      "chlorophyll_a_mean",
+      "chlorophyll_a_std",
+      "chlorophyll_a_last",
+      "chlorophyll_a_delta",
+      "chlorophyll_a_min",
+      "chlorophyll_a_max",
+      "salinity_mean",
+      "salinity_std",
+      "salinity_last",
+      "salinity_delta",
+      "salinity_min",
+      "salinity_max",
+      "temp_optimal_score",
+      "salinity_optimal_score",
+      "chl_growth_rate",
+      "chl_temp_interaction",
+      "do_temp_ratio",
+      "do_deficit",
+      "ph_deviation",
+      "turbidity_chl_ratio",
+      "hour_sin",
+      "hour_cos",
+      "doy_sin",
+      "doy_cos",
+      "bloom_window_flag"
+    ],
+    "top": [
+      {
+        "feature": "chlorophyll_a_max",
+        "label": "叶绿素a峰值",
+        "importance": 0.21591
+      },
+      {
+        "feature": "chlorophyll_a_min",
+        "label": "叶绿素a最低值",
+        "importance": 0.12583
+      },
+      {
+        "feature": "chlorophyll_a_last",
+        "label": "叶绿素a当前值",
+        "importance": 0.09111
+      },
+      {
+        "feature": "chlorophyll_a_delta",
+        "label": "叶绿素a变化量",
+        "importance": 0.0752
+      },
+      {
+        "feature": "chlorophyll_a_mean",
+        "label": "叶绿素a均值",
+        "importance": 0.05787
+      },
+      {
+        "feature": "turbidity_chl_ratio",
+        "label": "浊度/叶绿素a比",
+        "importance": 0.03065
+      },
+      {
+        "feature": "chl_growth_rate",
+        "label": "叶绿素a增长速率",
+        "importance": 0.02765
+      },
+      {
+        "feature": "water_temp_std",
+        "label": "水温波动",
+        "importance": 0.02509
+      },
+      {
+        "feature": "chl_temp_interaction",
+        "label": "叶绿素a×水温耦合",
+        "importance": 0.02075
+      },
+      {
+        "feature": "chlorophyll_a_std",
+        "label": "叶绿素a波动",
+        "importance": 0.01973
+      },
+      {
+        "feature": "salinity_max",
+        "label": "盐度最高值",
+        "importance": 0.01908
+      },
+      {
+        "feature": "doy_cos",
+        "label": "季节节律（cos）",
+        "importance": 0.01699
+      },
+      {
+        "feature": "dissolved_oxygen_std",
+        "label": "溶解氧波动",
+        "importance": 0.01628
+      },
+      {
+        "feature": "salinity_std",
+        "label": "盐度波动",
+        "importance": 0.01438
+      },
+      {
+        "feature": "temp_optimal_score",
+        "label": "水温适宜度",
+        "importance": 0.01412
+      }
+    ]
+  },
+  "training": {
+    "samples": 16000,
+    "class_distribution": {
+      "1": 9725,
+      "2": 3005,
+      "3": 1581,
+      "4": 1689
+    },
+    "class_weight": {
+      "1": 0.4113,
+      "2": 1.3316,
+      "3": 2.5295,
+      "4": 2.3678
+    },
+    "seed": 20260501,
+    "data_source": "physics-simulation",
+    "sites": [
+      "LJ-HQ-B01",
+      "LJ-HQ-B02",
+      "LJ-GW-B01",
+      "LJ-DH-B01",
+      "LJ-DH-P01",
+      "LJ-TL-B01",
+      "LJ-DLD-B01",
+      "LJ-MB-B01",
+      "LJ-PK-B01",
+      "LJ-LYW-B01"
+    ],
+    "note": "接入真实观测数据后可复用同一特征工程与训练流程。"
+  },
+  "metrics": {
+    "accuracy": 0.7652,
+    "macro_f1": 0.618,
+    "weighted_f1": 0.77,
+    "macro_recall": 0.6231,
+    "roc_auc_ovr": 0.8869,
+    "high_risk_recall": 0.623,
+    "high_risk_false_negative_rate": 0.377,
+    "test_samples": 4000,
+    "train_samples": 12000
+  },
+  "per_class": [
+    {
+      "level": 1,
+      "label": "Ⅰ级",
+      "name": "低风险",
+      "precision": 0.9186,
+      "recall": 0.905,
+      "f1": 0.9117,
+      "support": 2431
+    },
+    {
+      "level": 2,
+      "label": "Ⅱ级",
+      "name": "关注",
+      "precision": 0.6968,
+      "recall": 0.6144,
+      "f1": 0.653,
+      "support": 752
+    },
+    {
+      "level": 3,
+      "label": "Ⅲ级",
+      "name": "中高风险",
+      "precision": 0.3526,
+      "recall": 0.4329,
+      "f1": 0.3886,
+      "support": 395
+    },
+    {
+      "level": 4,
+      "label": "Ⅳ级",
+      "name": "高风险",
+      "precision": 0.4989,
+      "recall": 0.5403,
+      "f1": 0.5188,
+      "support": 422
+    }
+  ],
+  "confusion_matrix": {
+    "labels": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "matrix": [
+      [
+        2200,
+        26,
+        188,
+        17
+      ],
+      [
+        62,
+        462,
+        68,
+        160
+      ],
+      [
+        104,
+        68,
+        171,
+        52
+      ],
+      [
+        29,
+        107,
+        58,
+        228
+      ]
+    ]
+  }
+}

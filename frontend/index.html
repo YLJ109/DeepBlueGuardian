@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>深蓝智护 · 连江海洋生态智能监测平台</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  [v-cloak] { visibility: hidden; }
+  .sandbox-tip {
+    position: absolute;
+    display: none;
+    z-index: 12;
+    padding: 7px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: rgba(6, 28, 50, 0.94);
+    backdrop-filter: blur(10px);
+    font-size: 12px;
+    color: var(--text);
+    pointer-events: none;
+    max-width: 260px;
+    line-height: 1.45;
+  }
+  .sandbox-tip b { display: block; font-size: 12.5px; color: #fff; margin-bottom: 2px; }
+  .sandbox-tip span { font-size: 11px; color: var(--text-dim); }
+  .src-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--line-soft);
+    background: var(--panel-inset);
+  }
+  .src-row + .src-row { margin-top: 6px; }
+  .src-row .nm { flex: 1; font-size: 12px; color: #a9d8ec; min-width: 0; }
+  .src-row .ct { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: #fff; }
+  .src-row .ct small { color: var(--text-mute); font-size: 11px; font-weight: 400; }
+  .kv-line { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 3px 0; }
+  .kv-line .k { color: var(--text-dim); min-width: 62px; }
+  .kv-line .v { font-family: var(--font-mono); color: #fff; margin-left: auto; }
+  .flash-ring { animation: flashRing 1.3s ease 2; }
+  @keyframes flashRing { 0%, 100% { box-shadow: var(--shadow-panel), var(--glow-inset); } 50% { box-shadow: 0 0 34px rgba(255,77,109,0.7), var(--glow-inset); } }
+  /* 海洋生态智能体：自然语言问答 + 工具调用轨迹 */
+  .top-agent { display:flex; align-items:center; gap:6px; height:26px; padding:0 11px; border:1px solid rgba(51,225,255,0.42); border-radius:var(--radius-sm); background:rgba(51,225,255,0.10); color:#cfefff; font-size:12px; cursor:pointer; transition:all .16s ease; }
+  .top-agent:hover, .top-agent.active { border-color:#33e1ff; color:#fff; background:rgba(51,225,255,0.2); box-shadow:0 0 16px rgba(51,225,255,0.28); }
+  .agent-panel { position:absolute; right:26px; bottom:98px; z-index:27; width:430px; max-height:66%; display:flex; flex-direction:column; border:1px solid var(--line); border-radius:var(--radius); background:rgba(5,24,43,0.95); backdrop-filter:blur(14px); box-shadow:var(--shadow-panel); overflow:hidden; }
+  .agent-head { display:flex; align-items:center; gap:9px; padding:9px 12px; border-bottom:1px solid var(--line-soft); background:linear-gradient(180deg, rgba(51,225,255,0.12), rgba(51,225,255,0)); }
+  .agent-mark { display:grid; place-items:center; width:26px; height:26px; flex:0 0 auto; border-radius:var(--radius-sm); background:rgba(51,225,255,0.15); color:#33e1ff; }
+  .agent-title { flex:1; min-width:0; }
+  .agent-title b { display:block; font-size:13px; color:#fff; letter-spacing:0; }
+  .agent-title i { font-style:normal; font-family:var(--font-mono); font-size:10.5px; color:var(--text-mute); }
+  .agent-status { flex:0 0 auto; font-family:var(--font-mono); font-size:10.5px; color:#29e7a0; }
+  .agent-status.busy { color:#ffd166; }
+  .agent-status.err { color:#ff4d6d; }
+  .agent-close { width:24px; height:24px; display:grid; place-items:center; border:1px solid var(--line-soft); border-radius:var(--radius-sm); background:transparent; color:var(--text-dim); cursor:pointer; }
+  .agent-close:hover { color:#fff; border-color:var(--line); }
+  .agent-body { flex:1 1 auto; overflow:auto; padding:10px 12px; display:flex; flex-direction:column; gap:10px; min-height:120px; }
+  .agent-empty { font-size:12px; color:var(--text-dim); line-height:1.7; }
+  .agent-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .agent-chip { padding:4px 9px; border:1px solid var(--line-soft); border-radius:var(--radius-pill); background:var(--panel-inset); color:#a9d8ec; font-size:11px; cursor:pointer; }
+  .agent-chip:hover { border-color:rgba(51,225,255,0.6); color:#fff; }
+  .agent-msg { display:flex; flex-direction:column; gap:4px; }
+  .agent-msg.user { align-items:flex-end; }
+  .agent-msg .who { font-size:10.5px; color:var(--text-mute); }
+  .agent-msg .bubble { max-width:100%; padding:8px 11px; border-radius:var(--radius-sm); border:1px solid var(--line-soft); background:var(--panel-inset); font-size:12.5px; line-height:1.72; color:var(--text); white-space:pre-wrap; word-break:break-word; }
+  .agent-msg.user .bubble { background:rgba(51,225,255,0.12); border-color:rgba(51,225,255,0.34); color:#e7f8ff; }
+  .agent-steps { display:flex; flex-direction:column; gap:5px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed var(--line-soft); }
+  .agent-step { display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-dim); }
+  .agent-step em { font-style:normal; margin-left:auto; font-family:var(--font-mono); font-size:10.5px; color:var(--text-mute); }
+  .agent-step .dot { width:6px; height:6px; flex:0 0 auto; border-radius:50%; background:#ffd166; box-shadow:0 0 8px rgba(255,209,102,0.8); }
+  .agent-step.done .dot { background:#29e7a0; box-shadow:0 0 8px rgba(41,231,160,0.8); }
+  .agent-step.err .dot { background:#ff4d6d; }
+  .agent-focus { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .agent-focus button { padding:3px 8px; border:1px solid rgba(51,225,255,0.4); border-radius:var(--radius-pill); background:rgba(51,225,255,0.10); color:#bfeaff; font-family:var(--font-mono); font-size:10.5px; cursor:pointer; }
+  .agent-focus button:hover { color:#fff; border-color:#33e1ff; }
+  .agent-foot { border-top:1px solid var(--line-soft); padding:9px 12px; display:flex; flex-direction:column; gap:8px; }
+  .agent-input { display:flex; align-items:center; gap:8px; }
+  .agent-input input { flex:1; height:32px; padding:0 10px; border:1px solid var(--line-soft); border-radius:var(--radius-sm); background:var(--panel-inset); color:var(--text); font-size:12.5px; outline:none; }
+  .agent-input input:focus { border-color:rgba(51,225,255,0.6); }
+  .agent-input button { width:36px; height:32px; padding:0; display:grid; place-items:center; }
+  .typing { display:inline-flex; gap:4px; padding:2px 0; }
+  .typing i { width:5px; height:5px; border-radius:50%; background:#33e1ff; animation:agentBlink 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay:.2s; }
+  .typing i:nth-child(3) { animation-delay:.4s; }
+  @keyframes agentBlink { 0%, 100% { opacity:.25; } 50% { opacity:1; } }
+</style>
+</head>
+<body class="screen-body">
+<div id="screen" v-cloak :class="{ 'flash-ring': flash }">
+
+  <!-- 顶栏 -->
+  <header class="screen-top">
+    <div class="top-frame" aria-hidden="true">
+      <span class="tf-wing left"></span>
+      <span class="tf-wing right"></span>
+      <span class="tf-corner tl"></span>
+      <span class="tf-corner tr"></span>
+      <span class="tf-chip"></span>
+    </div>
+
+    <div class="brand">
+      <div class="brand-mark" v-html="icon('waves', 22)"></div>
+      <div class="brand-text">
+        <div class="brand-title">深蓝智护</div>
+        <div class="brand-sub">DEEP BLUE GUARDIAN</div>
+      </div>
+      <div class="brand-tag"><span class="tag-dot"></span>连江 · 黄岐半岛示范区</div>
+    </div>
+
+    <div class="screen-title-wrap">
+      <div class="screen-title">连江海洋生态智能监测平台</div>
+      <div class="screen-subtitle">OCEAN ECOLOGICAL DIGITAL TWIN · LIANJIANG</div>
+    </div>
+
+    <div class="top-right">
+      <div class="top-stat" :title="'实时通道状态：' + realtimeStatus">
+        <span :class="['bdot', realtimeStatus === 'online' ? 'green pulse' : 'yellow pulse']"></span>
+        <span>{{ realtimeStatus === 'online' ? '实时通道已连接' : '实时通道重连中' }}</span>
+      </div>
+      <div class="top-stat">
+        <span>浮标在线</span>
+        <b>{{ summary.buoy_online || 0 }}/{{ summary.buoy_total || 0 }}</b>
+      </div>
+      <div class="top-stat">
+        <span>待处置告警</span>
+        <b :style="{ color: (summary.pending_alerts || 0) > 0 ? '#ff9f43' : '#29e7a0' }">{{ summary.pending_alerts || 0 }}</b>
+      </div>
+      <div class="top-icons">
+      <button type="button" class="top-agent" :class="{ active: agent.open }" title="海洋生态智能体：用自然语言查设备、水质、告警与赤潮风险" @click="toggleAgent">
+        <span v-html="icon('cpu', 14)"></span>智能体
+      </button>
+        <span class="ticon" title="观测数据链路加密传输" v-html="icon('lock', 15)"></span>
+        <span class="ticon" title="平台运行状态监测" v-html="icon('shield', 15)"></span>
+        <span class="ticon" title="边缘网关通信链路" v-html="icon('signal', 15)"></span>
+      </div>
+      <div class="top-clock">
+        <div class="t">{{ clock.time || '--:--:--' }}</div>
+        <div class="d">{{ clock.date }}</div>
+      </div>
+    </div>
+
+    <div class="top-rail">
+      <span class="rail-mark"></span>
+      <span class="rail-text">连江海域多参数水质浮标 {{ summary.buoy_online || 0 }}/{{ summary.buoy_total || 0 }} 在线 · 边缘网关与视频点位 {{ summary.device_total || 0 }} 台在网 · 赤潮模型 {{ summary.model_version || 'v1' }} 在线推理</span>
+      <span class="rail-mark r"></span>
+    </div>
+  </header>
+
+  <nav class="screen-nav" aria-label="视图切换">
+    <span class="nav-cap left" aria-hidden="true"></span>
+    <button v-for="(m, idx) in VIEW_MODES" :key="m.key"
+            :class="{ active: mode === m.key }"
+            :aria-pressed="mode === m.key"
+            @click="switchMode(m.key)">
+      <span class="nav-icon" v-html="icon(m.icon, 14)"></span>
+      <i>{{ String(idx + 1).padStart(2, '0') }}</i>{{ m.label }}
+    </button>
+    <span class="nav-cap right" aria-hidden="true">›</span>
+  </nav>
+
+  <!-- 全屏三维海洋数字孪生层 -->
+  <div class="sandbox-backdrop">
+    <div id="sandbox"></div>
+    <div class="map-grade"></div>
+    <div class="map-hud" aria-hidden="true"></div>
+    <div id="sandboxTip" class="sandbox-tip"></div>
+    <div class="map-attribution">底图影像 © Esri World Imagery · 地形 SRTM 1 arc-second</div>
+  </div>
+
+
+
+  <!-- 主体三栏 -->
+  <main class="screen-stage">
+
+    <!-- 左栏 -->
+    <section class="col">
+      <div class="panel" style="flex:0 0 150px;">
+        <div class="panel-head">
+          <span class="bdot"></span>
+          <span class="title">数据源状态</span>
+          <span class="rule"></span>
+          <span class="hint">{{ summary.model_mode === 'tree-ensemble' ? 'AI 在线' : '规则降级' }}</span>
+        </div>
+        <div class="panel-body">
+          <div class="kpi-row" style="margin-bottom:8px;">
+            <div class="kpi">
+              <div class="icon-box" v-html="icon('server', 15)"></div>
+              <div class="kpi-body">
+                <div class="kpi-v">{{ fmt.int(summary.device_total) }}</div>
+                <div class="kpi-k">在网设备</div>
+              </div>
+            </div>
+            <div class="kpi">
+              <div class="icon-box green" v-html="icon('signal', 15)"></div>
+              <div class="kpi-body">
+                <div class="kpi-v">{{ fmt.pct(summary.online_rate) }}</div>
+                <div class="kpi-k">在线率</div>
+              </div>
+            </div>
+            <div class="kpi">
+              <div class="icon-box purple" v-html="icon('database', 15)"></div>
+              <div class="kpi-body">
+                <div class="kpi-v">{{ fmt.int(summary.readings_total) }}</div>
+                <div class="kpi-k">观测记录</div>
+              </div>
+            </div>
+          </div>
+          <div class="src-row" v-for="t in deviceTypes" :key="t.key">
+            <div class="icon-box" v-html="icon(t.icon, 15)"></div>
+            <span class="nm ellipsis">{{ t.label }}</span>
+            <span class="ct">{{ t.online }}<small> / {{ t.count }}</small></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:0 0 246px;">
+        <div class="panel-head">
+          <span class="bdot green"></span>
+          <span class="title">实时水质监测</span>
+          <span class="rule"></span>
+          <span class="hint">全域浮标均值</span>
+        </div>
+        <div class="panel-body" style="padding:6px 8px;">
+          <div class="metric-row" v-for="m in metrics" :key="m.key">
+            <div class="icon-box" :style="{ color: m.color, background: m.color + '1f', borderColor: m.color + '40' }" v-html="icon('activity', 14)"></div>
+            <span class="k">{{ m.label }}</span>
+            <span class="v">{{ fmt.num(m.value) }}<small style="font-size:11px;color:#7fb3cc;margin-left:3px;">{{ m.unit }}</small></span>
+            <span :class="['trend', trendOf(m.key).cls]">{{ trendOf(m.key).text }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:1 1 auto;min-height:180px;">
+        <div class="panel-head">
+          <span class="bdot"></span>
+          <span class="title">水质监测曲线</span>
+          <span class="rule"></span>
+          <span class="hint">近 24 小时 · 小时均值</span>
+        </div>
+        <div class="panel-body flush"><div id="chartWater" class="chart"></div></div>
+      </div>
+
+      <div class="panel" style="flex:0 0 176px;">
+        <div class="panel-head">
+          <span class="bdot yellow"></span>
+          <span class="title">告警统计</span>
+          <span class="rule"></span>
+          <span class="hint">近 24 小时</span>
+        </div>
+        <div class="panel-body flush"><div id="chartAlert" class="chart"></div></div>
+      </div>
+    </section>
+
+    <!-- 中栏：三维沙盘（center 类用于放行指针事件，保证场景可拖拽） -->
+    <section class="col center">
+      <div class="panel map-layer-panel" style="flex:1 1 auto;">
+        <div class="panel-head">
+          <span class="bdot pulse"></span>
+          <span class="title">连江海域数字孪生沙盘</span>
+          <span class="rule"></span>
+          <span class="hint">黄岐半岛 · 定海湾 · 罗源湾 · 敖江口</span>
+        </div>
+        <div class="panel-body flush">
+          <div class="sandbox-overlay">
+              <div class="overlay-top">
+                <div class="overlay-chip">
+                  <span class="k">赤潮风险</span>
+                  <span class="v" :style="{ color: riskSummary.overall_color || '#33e1ff' }">{{ riskSummary.overall_label || '--' }}</span>
+                </div>
+                <div class="overlay-chip">
+                  <span class="k">最高风险概率</span>
+                  <span class="v">{{ fmt.pct(riskProbability * 100) }}</span>
+                </div>
+                <div class="overlay-chip">
+                  <span class="k">红树林健康度</span>
+                  <span class="v">{{ fmt.num(mangrove.average_health, 1) }}</span>
+                </div>
+              </div>
+
+              <div class="legend">
+                <div class="legend-row" v-for="l in legend" :key="l.text">
+                  <span class="legend-dot" :style="{ background: l.color, boxShadow: '0 0 8px ' + l.color }"></span>
+                  <span>{{ l.text }}</span>
+                </div>
+              </div>
+
+              <div v-if="selected" class="detail-card">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                  <div class="icon-box" v-html="icon('anchor', 15)"></div>
+                  <div style="flex:1;min-width:0;">
+                    <div class="ellipsis" style="font-size:13px;font-weight:700;color:#fff;">{{ selected.site || selected.name || selected.device_name }}</div>
+                    <div class="mono" style="font-size:11px;color:#7fb3cc;">{{ selected.device_code }}</div>
+                  </div>
+                  <button class="btn sm ghost" @click="closeDetail" aria-label="关闭详情" v-html="icon('x', 13)"></button>
+                </div>
+                <div class="kv-line"><span class="k">所属海域</span><span class="v">{{ selected.region_name || selected.region || '--' }}</span></div>
+                <div class="kv-line"><span class="k">设备状态</span><span class="v">{{ selected.status === 'online' ? '在线' : '离线' }}</span></div>
+                <div class="kv-line"><span class="k">电池电量</span><span class="v">{{ fmt.pct(selected.battery) }}</span></div>
+                <div class="kv-line"><span class="k">信号强度</span><span class="v">{{ selected.signal ? selected.signal + ' dBm' : '--' }}</span></div>
+                <div class="hr"></div>
+                <div class="kv-line" v-for="key in METRIC_ORDER" :key="key">
+                  <span class="k">{{ METRIC_META[key].label }}</span>
+                  <span class="v">{{ fmt.num(selected.values ? selected.values[key] : null) }} {{ METRIC_META[key].unit }}</span>
+                </div>
+                <div class="hr" v-if="selectedRisk"></div>
+                <div v-if="selectedRisk">
+                  <div class="kv-line"><span class="k">赤潮风险</span><span class="v" :style="{ color: selectedRisk.color }">{{ selectedRisk.level_label }} {{ selectedRisk.level_name }}</span></div>
+                  <div class="kv-line"><span class="k">风险概率</span><span class="v">{{ fmt.pct(selectedRisk.probability * 100) }}</span></div>
+                  <div class="kv-line" v-for="f in (selectedRisk.top_factors || []).slice(0, 3)" :key="f.feature">
+                    <span class="k">{{ f.label }}</span><span class="v">{{ f.direction }}</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                  <button class="btn sm" style="flex:1;" @click="resetView" v-html="icon('target', 13) + '<span>复位视角</span>'"></button>
+                </div>
+              </div>
+
+              <div class="overlay-bottom">
+                <div class="ai-banner">
+                  <em>AI 研判：</em>{{ banner }}
+                </div>
+              </div>
+            </div>
+          </div>
+      </div>
+    </section>
+
+    <!-- 右栏 -->
+    <section class="col">
+      <div class="panel" style="flex:0 0 244px;">
+        <div class="panel-head">
+          <span class="bdot" :class="riskLevel >= 4 ? 'red' : riskLevel >= 3 ? 'yellow' : 'green'"></span>
+          <span class="title">赤潮风险预警</span>
+          <span class="rule"></span>
+          <span class="hint">未来 48 小时</span>
+        </div>
+        <div class="panel-body" style="display:flex;align-items:center;gap:14px;padding:6px 12px;">
+          <div class="risk-ring">
+            <div id="chartRisk" class="chart"></div>
+            <div class="center">
+              <div class="pc" :style="{ color: riskSummary.overall_color || '#33e1ff' }">{{ riskPercent }}<i>%</i></div>
+              <div class="lv" :style="{ color: riskSummary.overall_color || '#fff' }">{{ riskSummary.overall_label || '--' }} · {{ riskSummary.overall_name || '待研判' }}</div>
+            </div>
+          </div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:6px;">
+            <div class="kv-line"><span class="k">参与研判</span><span class="v">{{ riskSummary.device_count || 0 }} 个点位</span></div>
+            <div class="kv-line" v-for="d in (riskSummary.distribution || [])" :key="d.level">
+              <span class="k" :style="{ color: d.color }">{{ d.label }} {{ d.name }}</span>
+              <span class="v">{{ d.count }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:0 0 200px;">
+        <div class="panel-head">
+          <span class="bdot purple"></span>
+          <span class="title">风险贡献因子</span>
+          <span class="rule"></span>
+          <span class="hint">模型可解释性分解</span>
+        </div>
+        <div class="panel-body flush"><div id="chartFactors" class="chart"></div></div>
+      </div>
+
+      <div class="panel" style="flex:0 0 196px;">
+        <div class="panel-head">
+          <span class="bdot green"></span>
+          <span class="title">海域生态占比</span>
+          <span class="rule"></span>
+          <span class="hint">单位：公顷</span>
+        </div>
+        <div class="panel-body flush"><div id="chartEco" class="chart"></div></div>
+      </div>
+
+      <div class="panel" style="flex:1 1 auto;min-height:150px;">
+        <div class="panel-head">
+          <span class="bdot red pulse"></span>
+          <span class="title">实时告警流</span>
+          <span class="rule"></span>
+          <span class="hint">{{ alerts.length }} 条</span>
+        </div>
+        <div class="panel-body" style="padding:8px;">
+          <div class="alert-feed">
+            <div v-if="!alerts.length" class="empty">暂无告警记录</div>
+            <div v-for="a in alerts" :key="a.id" :class="['alert-item', a.level]">
+              <span class="a-time">{{ fmt.time(a.created_at) }}</span>
+              <span class="a-text">{{ a.title }} · {{ a.content }}</span>
+              <span :class="['tag', a.level === 'critical' ? 'crit' : a.level === 'warning' ? 'warn' : 'info']">{{ a.status === 'pending' ? '待处置' : a.status === 'resolved' ? '已处置' : '处理中' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 底栏 -->
+  <footer class="screen-bottom">
+    <div class="bottom-cell">
+      <span class="icon-box" style="width:24px;height:24px;" v-html="icon('cpu', 14)"></span>
+      <span>模型</span><b>{{ summary.model_version || 'v1' }}</b>
+      <span class="mute">{{ summary.model_mode === 'tree-ensemble' ? '集成树' : '规则降级' }}</span>
+    </div>
+    <div class="bottom-cell">
+      <span class="icon-box" style="width:24px;height:24px;" v-html="icon('database', 14)"></span>
+      <span>观测总量</span><b>{{ fmt.int(summary.readings_total) }}</b>
+    </div>
+    <div class="bottom-cell">
+      <span class="icon-box" style="width:24px;height:24px;" v-html="icon('timer', 14)"></span>
+      <span>运行时长</span><b>{{ fmt.duration(summary.uptime_seconds) }}</b>
+    </div>
+    <div class="bottom-cell">
+      <span class="icon-box" style="width:24px;height:24px;" v-html="icon('radio', 14)"></span>
+      <span>实时通道</span><b>{{ summary.ws_clients || 0 }} 客户端</b>
+    </div>
+    <div class="ticker">
+      <div class="ticker-track">
+        <span style="padding-right:60px;">{{ tickerText }}</span>
+        <span style="padding-right:60px;">{{ tickerText }}</span>
+      </div>
+    </div>
+    <!-- 用户信息卡片：展示当前登录账号，可直接返回后台管理或退出登录 -->
+    <div class="user-card">
+      <span class="uc-avatar" :class="{ guest: !userInfo }">{{ userInitials }}</span>
+      <span class="uc-meta">
+        <b>{{ userInfo ? userInfo.display_name : '未登录' }}</b>
+        <i>{{ userRole }}</i>
+      </span>
+      <span class="uc-actions">
+        <button type="button" class="uc-btn" :title="userInfo ? '返回后台管理' : '登录后台管理'" @click="openConsole">
+          <span v-html="icon('layout', 14)"></span>
+        </button>
+        <button v-if="userInfo" type="button" class="uc-btn danger" title="退出登录" @click="logout">
+          <span v-html="icon('logout', 14)"></span>
+        </button>
+      </span>
+    </div>
+  </footer>
+
+  <!-- 严重告警弹窗 -->
+  <!-- 海洋生态智能体：自然语言提问 → 调用平台数据工具 → 大屏联动高亮 -->
+  <section v-if="agent.open" class="agent-panel" role="dialog" aria-label="海洋生态智能体">
+    <header class="agent-head">
+      <span class="agent-mark" v-html="icon('cpu', 15)"></span>
+      <span class="agent-title">
+        <b>海洋生态智能体</b>
+        <i>{{ agent.model || 'GLM-4-Flash' }}{{ agent.toolCount ? ' · ' + agent.toolCount + ' 项数据工具' : '' }}</i>
+      </span>
+      <span class="agent-status" :class="agent.statusKind">{{ agent.statusText }}</span>
+      <button class="agent-close" type="button" title="收起智能体" @click="toggleAgent" v-html="icon('x', 14)"></button>
+    </header>
+
+    <div class="agent-body" ref="agentBody">
+      <div v-if="!agent.messages.length" class="agent-empty">
+        直接描述你要了解的海洋生态情况，智能体会调用平台真实数据作答。
+        <div class="agent-chips" style="margin-top:8px;">
+          <button v-for="q in AGENT_EXAMPLES" :key="q" type="button" class="agent-chip" @click="askAgent(q)">{{ q }}</button>
+        </div>
+      </div>
+
+      <div v-for="(m, mi) in agent.messages" :key="mi" class="agent-msg" :class="m.role">
+        <span class="who">{{ m.role === 'user' ? '我' : '智能体' }}</span>
+        <div class="bubble">
+          <div v-if="m.steps.length" class="agent-steps">
+            <div v-for="(s, si) in m.steps" :key="si" class="agent-step" :class="{ done: s.done, err: s.ok === false }">
+              <span class="dot"></span>{{ s.label }}<em>{{ s.summary }}</em>
+            </div>
+          </div>
+          <div v-if="m.content">{{ m.content }}</div>
+          <div v-else-if="m.pending" class="typing"><i></i><i></i><i></i></div>
+          <div v-if="m.focus && m.focus.length" class="agent-focus">
+            <button v-for="f in m.focus" :key="f.device_code || f.region_code" type="button" @click="focusAgentTarget(f)">
+              {{ f.device_code || f.region_code }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="agent-foot">
+      <div class="agent-input">
+        <input v-model="agent.input" type="text" maxlength="200" :disabled="agent.busy"
+               placeholder="例如：未来 48 小时赤潮风险最高的点位在哪里？"
+               @keyup.enter="askAgent()">
+        <button class="btn primary" type="button" :disabled="agent.busy || !agent.input.trim()"
+                title="发送" @click="askAgent()" v-html="icon('arrowUp', 14)"></button>
+      </div>
+    </footer>
+  </section>
+
+  <div v-if="activeAlert" class="alert-modal" role="alertdialog" aria-labelledby="alertTitle">
+    <div class="alert-modal-head">
+      <span class="bdot red pulse"></span>
+      <span class="t" id="alertTitle">{{ activeAlert.title }}</span>
+      <span class="mono" style="font-size:12px;color:#ffd3dc;">{{ activeAlert.alert_code }}</span>
+    </div>
+    <div class="alert-modal-body">
+      <div style="font-size:13px;line-height:1.65;color:#ffe3e9;">{{ activeAlert.content }}</div>
+      <div class="hr"></div>
+      <div class="kv-line"><span class="k">所属区域</span><span class="v">{{ activeAlert.region_name || activeAlert.region_code || '--' }}</span></div>
+      <div class="kv-line"><span class="k">关联指标</span><span class="v">{{ activeAlert.metric_label || activeAlert.metric || '--' }}</span></div>
+      <div class="kv-line"><span class="k">告警时间</span><span class="v">{{ fmt.dateTime(activeAlert.created_at) }}</span></div>
+    </div>
+    <div class="alert-modal-foot">
+      <button class="btn primary" style="flex:1;" @click="handleAlert(activeAlert, 'handling')">派发现场核查</button>
+      <button class="btn" style="flex:1;" @click="handleAlert(activeAlert, 'resolved')">标记已处置</button>
+      <button class="btn ghost" @click="activeAlert = null" aria-label="关闭弹窗" v-html="icon('x', 14)"></button>
+    </div>
+  </div>
+</div>
+
+<script src="/vendor/vue.global.prod.js"></script>
+<script src="/vendor/echarts.min.js"></script>
+<script src="/vendor/three.min.js"></script>
+<script src="/assets/core.js"></script>
+<script src="/assets/screen.js"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+Lianjiang terrain basemap
+bbox=119.18,26.02,120.38,26.52
+satellite=Esri World Imagery (ArcGIS REST tile service)
+elevation=AWS Terrain Tiles / SRTM 1 arc-second, N26E119 + N26E120
+output=2200x1383
